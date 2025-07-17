@@ -1,0 +1,3 @@
+[submodule "packages/imitation"]
+	path = packages/imitation
+	url = git@github.com:meghbhalerao/imitation.git
