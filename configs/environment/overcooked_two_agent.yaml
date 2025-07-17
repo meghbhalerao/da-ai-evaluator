@@ -1,0 +1,46 @@
+gym_id: Overcooked-Two-v0
+
+gamma: 0.99
+
+# Layout settings  
+layout_name: "random0"  # Name of Submap, 40+ in choice. See /src/data/layouts/
+num_agents: 2  # number of players
+agent_types: ['rl','bc_proxy']
+overcooked_version: "old"  # choices: ["new", "old"]
+start_order_list: 
+  - ingredients: ["onion"]
+  - ingredients: ["onion", "tomato"]
+start_bonus_orders: []
+
+# Feature settings
+use_timestep_feature: false  # add timestep as a feature
+use_identity_feature: false  # add id as a feature
+use_agent_policy_id: false  # Add policy id into share obs
+
+# Reward shaping
+initial_reward_shaping_factor: 1.0  # Shaping factor of potential dense reward
+reward_shaping_factor: 1.0  # Shaping factor of potential dense reward
+reward_shaping_horizon: 2.5e6  # Shaping factor of potential dense reward
+w0: "1,1,1,1"  # Weight vector of dense reward 0 in overcooked env
+w1: "1,1,1,1"  # Weight vector of dense reward 1 in overcooked env
+w0_offset: 0
+use_hsp: false
+
+# Randomization
+random_start_prob: 0.0  # Probability to use a random start state
+use_random_terrain_state: false
+use_random_player_pos: false
+random_index: false
+
+# Replay settings
+num_initial_state: 5
+replay_return_threshold: 0.75
+use_render: false
+n_render_rollout_threads: 1
+capture_video: false
+
+# action space
+use_available_actions: false
+
+# motion planner 
+force_compute_mp: true

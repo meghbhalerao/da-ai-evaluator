@@ -1,0 +1,17 @@
+hidden_size: 64
+mlp_hidden_size: 64
+activation_id: 1
+influence_layer_N: 1
+layer_after_N: 1
+use_orthogonal: true
+use_attn: false
+use_conv1d: false
+stacked_frames: 1
+layer_N: 1
+attn_size: 64
+num_v_out: 1
+use_maxpool2d: false
+use_resnet: false
+use_original_size: false
+pretrained_global_resnet: false
+use_cat_self: true

@@ -1,0 +1,66 @@
+use_wandb: true
+wandb_tags: []
+use_phi: false
+use_centralized_V: false
+use_obs_instead_of_state: false
+use_linear_lr_decay: false
+use_single_network: false
+recurrent_N: 1
+model_dir: logs
+lr: 0.0005
+critic_lr: 0.0005
+weight_decay: 0
+opti_eps: 1e-05
+gain: 0.01
+use_peb: false
+ppo_epoch: 15
+clip_param: 0.2
+num_mini_batch: 1
+data_chunk_length: 10
+value_loss_coef: 1
+entropy_coefs: [0.02, 0.01, 0.01]
+entropy_coef_horizons: [0, 2.5e6, 5e6]
+max_grad_norm: 10.0
+use_max_grad_norm: true
+huber_delta: 10.0
+use_clipped_value_loss: true
+use_huber_loss: false
+eval_stochastic: true
+store_traj: false
+# algorithm_name: mappo
+# experiment_name: ${exp}
+# layout_name: ${layout}
+# num_agents: ${num_agents}
+
+# seed: ${seed}
+# n_training_threads: 1
+# n_rollout_threads: 100
+# dummy_batch_size: 2
+# num_mini_batch: 1
+# episode_length: 400
+# num_env_steps: ${num_env_steps}
+# reward_shaping_horizon: ${reward_shaping_horizon}
+
+# overcooked_version: ${version}
+
+# ppo_epoch: 15
+# entropy_coefs: ${entropy_coefs}
+# entropy_coef_horizons: ${entropy_coef_horizons}
+
+# use_hsp: true
+# w0: ${w0}
+# w1: ${w1}
+# share_policy: true
+# random_index: true
+
+# cnn_layers_params: "32,3,1,1 64,3,1,1 32,3,1,1"
+# use_recurrent_policy: false
+# use_proper_time_limits: true
+
+# save_interval: 25
+# log_interval: 10
+# use_eval: true
+# eval_interval: 20
+# n_eval_rollout_threads: 20
+
+# wandb_name: meghbhal2

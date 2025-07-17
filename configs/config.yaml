@@ -1,0 +1,7 @@
+defaults:
+  - algorithm: ppobc # does not matter if phase is bc_pop
+  - nn: lstm
+  - environment: overcooked_two_agent
+  - phase: bc_pop
+
+seed: 0

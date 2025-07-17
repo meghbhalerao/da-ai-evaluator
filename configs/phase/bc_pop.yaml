@@ -1,0 +1,6 @@
+defaults:
+    - /algorithm/bc
+    - /environment/overcooked_two_agent
+name: bc_pop # just keeping this field for some if statements for identifying this condition
+seed_range: [1,100] # must be a 2-sized list of the form low, high
+layout_names: ["asymmetric_advantages_tomato", "counter_circuit", "cramped_corridor", "inverse_marshmallow_experiment", "marshmallow_experiment", "marshmallow_experiment_coordination", "soup_coordination", "you_shall_not_pass", "asymmetric_advantages", "coordination_ring",  "cramped_room", "random0", "random3", ["random0", "random3"]] # this is a list that contains either string or a list of string to specify what data from what layout to use for training the BC model.
