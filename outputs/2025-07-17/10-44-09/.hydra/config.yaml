@@ -1,0 +1,26 @@
+policy:
+  name: keyboard_agent
+  use_policy_active_masks: true
+  use_policy_vhead: false
+  use_popart: false
+  use_influence_policy: false
+  gae_lambda: 0.95
+  use_gae: true
+  use_valuenorm: true
+  policy_value_loss_coef: 1
+  share_policy: true
+  use_value_active_masks: false
+  use_task_v_out: false
+rollout:
+  num_episodes: 10
+environment:
+  gym_id: FlappyBird-v0
+  env_params:
+    screen_size:
+    - 288
+    - 512
+    pipe_gap: 100,
+    bird_color: yellow
+    pipe_color: green
+    background: day
+seed: 0

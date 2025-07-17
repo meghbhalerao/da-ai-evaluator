@@ -1,6 +1,9 @@
+import gymnasium as gym
+
 class CollectRollouts:
-    def __init__(self, env, policy, num_episodes=10):
-        self.env = env
+    def __init__(self, env_id, env_params, policy, num_episodes=10):
+        self.env_id = env_id
+        self.env = gym.make(self.env_id, **env_params)
         self.policy = policy
         self.num_episodes = num_episodes
 
@@ -11,7 +14,7 @@ class CollectRollouts:
             done = False
             episode_rollout = []
             while not done:
-                action = self.policy(obs)
+                action = self.policy.get_action(obs)
                 next_obs, reward, done, info = self.env.step(action)
                 episode_rollout.append((obs, action, reward, next_obs, done))
                 obs = next_obs

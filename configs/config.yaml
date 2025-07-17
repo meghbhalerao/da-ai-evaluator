@@ -1,7 +1,10 @@
 defaults:
-  - algorithm: ppobc # does not matter if phase is bc_pop
-  - nn: lstm
-  - environment: overcooked_two_agent
-  - phase: bc_pop
+  # - algorithm: ppobc # does not matter if phase is bc_pop
+  # - nn: lstm
+  # - phase: bc_pop
+  - policy: policy
+  - rollout: rollout 
+  - environment: flappy_bird_gym
+
 
 seed: 0

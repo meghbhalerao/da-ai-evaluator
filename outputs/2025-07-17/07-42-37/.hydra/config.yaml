@@ -1,0 +1,160 @@
+algorithm:
+  name: ppobc
+  gym_id: Overcooked-Two-v0
+  learning_rate: 0.00025
+  seed: 1
+  total_timesteps: 10000000
+  torch_deterministic: true
+  cuda: true
+  track: false
+  wandb_project_name: ppo-implementation-details
+  wandb_entity: null
+  capture_video: false
+  num_envs: 8
+  num_steps: 128
+  anneal_lr: true
+  gae: true
+  gamma: 0.99
+  gae_lambda: 0.95
+  num_minibatches: 4
+  update_epochs: 4
+  norm_adv: true
+  clip_coef: 0.1
+  clip_vloss: true
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  target_kl: null
+nn: {}
+environment:
+  gym_id: FlappyBird-v0
+  env_params:
+    gamma: 0.99
+phase:
+  algorithm:
+    algorithm_name: bc
+    seed: 0
+    log_path: ./logs/bc
+    data_params:
+      layouts:
+      - cramped_room
+      check_trajectories: false
+      featurize_states: true
+      data_path: datasets/
+      layouts_with_data: null
+      data_year: 2020
+    mlp_params:
+      num_layers: 2
+      net_arch:
+      - 256
+      - 256
+    training_params:
+      epochs: 100
+      validation_split: 0.15
+      batch_size: 64
+      learning_rate: 0.001
+      use_class_weights: false
+      train_model: true
+    evaluation_params:
+      ep_length: 400
+      num_eval_episodes: 1000
+      display: false
+      load_from_ckpt: true
+      ckpt_path: saved_files/Overcooked-Two-v0/asymmetric_advantages_tomato/1/bc_best_model.pth
+      viz_traj: true
+      layouts_to_eval:
+      - asymmetric_advantages_tomato
+      - counter_circuit
+      - cramped_corridor
+      - inverse_marshmallow_experiment
+      - marshmallow_experiment
+      - marshmallow_experiment_coordination
+      - soup_coordination
+      - you_shall_not_pass
+    bc_params:
+      use_lstm: true
+      cell_size: 256
+      mdp_params:
+        layout_name: cramped_room
+        old_dynamics: false
+      observation_shape: null
+      featurize_type: handcrafted
+      num_lstm_layers: 10
+      env_params:
+        horizon: 400
+        mlam_params: null
+      mdp_fn_params: {}
+      action_shape: null
+  environment:
+    gym_id: Overcooked-Two-v0
+    gamma: 0.99
+    layout_name: random0
+    num_agents: 2
+    agent_types:
+    - rl
+    - bc_proxy
+    overcooked_version: old
+    start_order_list:
+    - ingredients:
+      - onion
+    - ingredients:
+      - onion
+      - tomato
+    start_bonus_orders: []
+    use_timestep_feature: false
+    use_identity_feature: false
+    use_agent_policy_id: false
+    initial_reward_shaping_factor: 1.0
+    reward_shaping_factor: 1.0
+    reward_shaping_horizon: 2500000.0
+    w0: 1,1,1,1
+    w1: 1,1,1,1
+    w0_offset: 0
+    use_hsp: false
+    random_start_prob: 0.0
+    use_random_terrain_state: false
+    use_random_player_pos: false
+    random_index: false
+    num_initial_state: 5
+    replay_return_threshold: 0.75
+    use_render: false
+    n_render_rollout_threads: 1
+    capture_video: false
+    use_available_actions: false
+    force_compute_mp: true
+  name: bc_pop
+  seed_range:
+  - 1
+  - 100
+  layout_names:
+  - asymmetric_advantages_tomato
+  - counter_circuit
+  - cramped_corridor
+  - inverse_marshmallow_experiment
+  - marshmallow_experiment
+  - marshmallow_experiment_coordination
+  - soup_coordination
+  - you_shall_not_pass
+  - asymmetric_advantages
+  - coordination_ring
+  - cramped_room
+  - random0
+  - random3
+  - - random0
+    - random3
+policy:
+  name: keyboard_agent
+  use_policy_active_masks: true
+  use_policy_vhead: false
+  use_popart: false
+  use_influence_policy: false
+  gae_lambda: 0.95
+  use_gae: true
+  use_valuenorm: true
+  policy_value_loss_coef: 1
+  share_policy: true
+  use_value_active_masks: false
+  use_task_v_out: false
+rollout:
+  num_rollouts: 10
+seed: 0

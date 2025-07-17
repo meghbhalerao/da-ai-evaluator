@@ -1,3 +1,4 @@
+name: keyboard_agent
 use_policy_active_masks: true
 use_policy_vhead: false
 use_popart: false
