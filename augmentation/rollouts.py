@@ -1,4 +1,5 @@
 import gymnasium as gym
+import sys
 
 class CollectRollouts:
     def __init__(self, env_id, env_params, policy, num_episodes=10):
@@ -18,6 +19,7 @@ class CollectRollouts:
                 next_obs, reward, done, info = self.env.step(action)
                 episode_rollout.append((obs, action, reward, next_obs, done))
                 obs = next_obs
+                self.env.render()
             rollouts.append(episode_rollout)
         return rollouts
 
