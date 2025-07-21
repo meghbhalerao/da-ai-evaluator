@@ -1,1 +1,1 @@
-num_episodes: 10 # default value of the number of games that we want to collect.
+num_episodes: 1 # default value of the number of games that we want to collect.
