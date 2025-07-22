@@ -1,0 +1,12 @@
+defaults:
+  # - algorithm: ppobc # does not matter if phase is bc_pop
+  # - nn: lstm
+  # - phase: bc_pop
+  - policy: policy
+  - rollout: rollout 
+  - environment: flappy_bird_gym
+  - algorithm: bc
+
+
+seed: 0
+use_collected_traj: true

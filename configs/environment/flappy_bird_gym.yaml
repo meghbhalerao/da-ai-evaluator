@@ -1,8 +1,0 @@
-gym_id: FlappyBird-v0
-env_folder_path: environments/flappy-bird-gym/flappy_bird_gym
-env_params:
-  screen_size: [288, 512]
-  pipe_gap: 100
-  bird_color: yellow
-  pipe_color: green
-  background: day
