@@ -3,11 +3,11 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.ppo import MlpPolicy
 
-from da_ai_evaluator.packages.imitation.algorithms import bc
-from packages.imitation.data import rollout
-from  packages.imitation.data.wrappers import RolloutInfoWrapper
-from packages.imitation.policies.serialize import load_policy
-from packages.imitation.util.util import make_vec_env
+from imitation.algorithms import bc
+from imitation.data import rollout
+from imitation.data.wrappers import RolloutInfoWrapper
+from imitation.policies.serialize import load_policy
+from imitation.util.util import make_vec_env
 
 
 class Trainer():
