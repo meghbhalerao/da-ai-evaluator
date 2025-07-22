@@ -1,6 +1,3 @@
-[submodule "packages/imitation"]
-	path = da_ai_evaluator/packages/imitation
-	url = git@github.com:meghbhalerao/imitation.git
-[submodule "environments/flappy-bird-gym"]
+[submodule "da_ai_evaluator/environments/flappy-bird-gym"]
 	path = da_ai_evaluator/environments/flappy-bird-gym
 	url = git@github.com:meghbhalerao/flappy-bird-gym.git
