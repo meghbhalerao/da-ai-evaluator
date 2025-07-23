@@ -11,14 +11,15 @@ from imitation.util.util import make_vec_env
 
 
 class Trainer():
-    def __init__(self, env, eval_env, demonstrations, seed, algorithm):
+    def __init__(self, env, eval_env, demonstrations, seed, algorithm, trainer_config):
         self.env = env
         self.eval_env = eval_env
         self.seed = seed
         if algorithm == "bc":
-            self.trainer = bc.BC(observation_space=self.env.observation_space, action_space=env.action_space, demonstrations=demonstrations, rng=seed,)
+            self.trainer = bc.BC(observation_space=self.env.observation_space, action_space=env.action_space, demonstrations=demonstrations, rng=seed)
         else:
             raise NotImplementedError(f"Algorithm {algorithm} is not implemented yet!")
+        self.trainer_config = trainer_config
         
     def train(self):
         print("Evaluating the untrained policy.")
@@ -32,7 +33,7 @@ class Trainer():
         print(f"Reward before training: {reward}")
 
         print("Training a policy using Behavior Cloning")
-        self.trainer.train(n_epochs=1)
+        self.trainer.train(n_epochs=self.trainer_config.n_epochs)
 
         print("Evaluating the trained policy.")
         reward, _ = evaluate_policy(
@@ -42,6 +43,9 @@ class Trainer():
             render=True,  # comment out to speed up
         )
         print(f"Reward after training: {reward}")
+
+        # save the trained policy
+        print(self.trainer.policy)
 
 
 

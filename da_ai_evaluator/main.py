@@ -21,7 +21,7 @@ def main(cfg: DictConfig):
     if cfg.use_collected_traj:
         print("Using collected trajectories for training.")
         trajectory_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), cfg.environment.env_folder_path, "trajectories")
-        trajectories = convert_data_format(trajectory_path)
+        trajectories = convert_data_format(trajectory_path, env_id = cfg.environment.gym_id)
         print(f"Converted {len(trajectories)} trajectories from {trajectory_path}.")
     else:
         raise NotImplementedError("Only collected trajectories are supported in this version! Trajectories must be collected before training.")
@@ -46,10 +46,12 @@ def main(cfg: DictConfig):
         cfg.seed,
         cfg.environment.wrapper_class
     )
-
-
+    # print(train_envs.reset())
+    # obs = train_envs.reset()
+    # print(f"Observation shape: {obs.shape}, Action space: {train_envs.action_space}")
+    # sys.exit()
     # IL model training algorithm is to be added here 
-    Trainer(train_envs, eval_envs, trajectories, cfg.seed, cfg.algorithm.name).train()
+    Trainer(train_envs, eval_envs, trajectories, cfg.seed, cfg.algorithm.name, cfg.).train()
 
 
 

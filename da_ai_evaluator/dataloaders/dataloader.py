@@ -41,30 +41,29 @@ def get_obs_flappy_bird_simple(game_state_list, screen_size, normalize_obs = Tru
     return np.array(flapp_bird_simple_obs_list, dtype=np.float32)
 
 
-def convert_data_format(data_path, screen_size=(288, 512), normalize_obs=True):
+def convert_data_format(data_path, env_id, screen_size=(288, 512), normalize_obs=True):
     all_trajectories = []
     for traj_file in sorted(os.listdir(data_path)):
         print(f"Processing file: {traj_file}")
         if traj_file.endswith('.pkl'):
             with open(os.path.join(data_path, traj_file), 'rb') as f:
                 trajectory = pickle.load(f)
-                states, actions, obs, rewards = trajectory['game_states'], trajectory['actions'], trajectory['image_obs'], trajectory['rewards']
+                states, actions, obs, rewards = trajectory['game_states'], np.array(trajectory['actions']), np.array(trajectory['image_obs']), np.array(trajectory['rewards'], dtype=np.float32)
                 
                 get_obs_flappy_bird_simple
-                simple_obs_list = get_obs_flappy_bird_simple(states, screen_size=screen_size, normalize_obs=normalize_obs)
-                print(simple_obs_list)
-                infos = [{"state": state, "simple_obs": simple_obs} for state, simple_obs in zip(states, simple_obs_list)][:-1]
-
-                if isinstance(rewards, list):
-                    rewards = np.array(rewards, dtype=np.float32)
+                simple_obs = get_obs_flappy_bird_simple(states, screen_size=screen_size, normalize_obs=normalize_obs)
+                infos = [{"state": state, "simple_obs": simple_obs} for state, simple_obs in zip(states, simple_obs)][:-1]
 
                 # making the saved trajectory compatible with the imitaiton learning package that we are using (I have assumed that I trust the IL package which I am using: https://imitation.readthedocs.io/en/latest/algorithms/bc.html, from berkeley, so might be reliable)
-                print(f"Length of obs: {len(obs)}, Length of simple obs: {len(simple_obs_list)} actions: {len(actions)}, infos: {len(infos)}, rewards: {len(rewards)}") # printing the lenghths of individual items in in the trajectory class
-
-                trajectory = TrajectoryWithRew(obs = obs, acts = actions, infos = infos, rews = rewards,
-                 terminal = True)
-                
+                print(f"Shape of obs: {obs.shape}, simple obs: {simple_obs.shape} actions: {actions.shape}, infos: {len(infos)}, rewards: {rewards.shape}") # printing the shapes of individual items in the trajectory class
+                if env_id == "FlappyBird-v0":
+                    trajectory = TrajectoryWithRew(obs = simple_obs, acts = actions, infos = infos, rews = rewards, terminal = True)
+                elif env_id == "FlappyBirdRGB-v0":
+                    trajectory = TrajectoryWithRew(obs = obs, acts = actions, infos = infos, rews = rewards, terminal = True)
+                else:
+                    raise NotImplementedError(f"Environment {env_id} is not supported for data conversion in this version!")
                 all_trajectories.append(trajectory)  
+            
     return all_trajectories
     
 
