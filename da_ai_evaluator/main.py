@@ -47,8 +47,9 @@ def main(cfg: DictConfig):
         cfg.environment.wrapper_class
     )
 
+
     # IL model training algorithm is to be added here 
-    Trainer(train_envs, eval_envs, trajectories, cfg.seed, cfg.algorithm).train()
+    Trainer(train_envs, eval_envs, trajectories, cfg.seed, cfg.algorithm.name).train()
 
 
 

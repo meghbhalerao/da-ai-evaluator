@@ -23,7 +23,7 @@ class Trainer():
     def train(self):
         print("Evaluating the untrained policy.")
         reward, _ = evaluate_policy(
-            bc_trainer.policy,  # type: ignore[arg-type]
+            self.trainer.policy,  # type: ignore[arg-type]
             self.eval_env,
             n_eval_episodes=3,
             render=True,  # comment out to speed up
@@ -32,11 +32,11 @@ class Trainer():
         print(f"Reward before training: {reward}")
 
         print("Training a policy using Behavior Cloning")
-        self.bc_trainer.train(n_epochs=1)
+        self.trainer.train(n_epochs=1)
 
         print("Evaluating the trained policy.")
         reward, _ = evaluate_policy(
-            bc_trainer.policy,  # type: ignore[arg-type]
+            self.trainer.policy,  # type: ignore[arg-type]
             self.eval_env,
             n_eval_episodes=3,
             render=True,  # comment out to speed up

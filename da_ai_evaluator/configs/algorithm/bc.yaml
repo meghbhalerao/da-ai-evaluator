@@ -2,7 +2,7 @@ defaults:
   - _self_
 
 
-algorithm_name: bc
+name: bc
 seed: 0
 log_path: ./logs/bc
 
