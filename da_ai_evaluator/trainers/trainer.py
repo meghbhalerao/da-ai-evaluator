@@ -8,10 +8,15 @@ from imitation.data import rollout
 from imitation.data.wrappers import RolloutInfoWrapper
 from imitation.policies.serialize import load_policy
 from imitation.util.util import make_vec_env
+from utils.path_utils import find_git_root
+import os
+import torch
 
+POLICY_SAVE_FOLDER = os.path.join(find_git_root(),"da_ai_evaluator", "saved_stuff", "policies")
+os.makedirs(POLICY_SAVE_FOLDER, exist_ok=True)
 
 class Trainer():
-    def __init__(self, env, eval_env, demonstrations, seed, algorithm, trainer_config):
+    def __init__(self, env, eval_env, demonstrations, seed, algorithm, algo_config):
         self.env = env
         self.eval_env = eval_env
         self.seed = seed
@@ -19,7 +24,7 @@ class Trainer():
             self.trainer = bc.BC(observation_space=self.env.observation_space, action_space=env.action_space, demonstrations=demonstrations, rng=seed)
         else:
             raise NotImplementedError(f"Algorithm {algorithm} is not implemented yet!")
-        self.trainer_config = trainer_config
+        self.trainer_config = algo_config.training_params
         
     def train(self):
         print("Evaluating the untrained policy.")
@@ -29,23 +34,29 @@ class Trainer():
             n_eval_episodes=3,
             render=True,  # comment out to speed up
         )
-
         print(f"Reward before training: {reward}")
+        # Save the state_dict
+        policy_path = os.path.join(POLICY_SAVE_FOLDER, f"{self.env.spec.id}_policy.pth")
+        if os.path.exists(policy_path) and self.trainer_config.load_pretrained_policy:
+            print(f"Policy already exists at {policy_path}, hence loading pretrained policy!")
+            self.trainer.policy.load_state_dict(torch.load(policy_path))
+        else:
+            print("Training a policy using Behavior Cloning")
+            self.trainer.train(n_epochs=self.trainer_config.epochs)
 
-        print("Training a policy using Behavior Cloning")
-        self.trainer.train(n_epochs=self.trainer_config.n_epochs)
+            print("Evaluating the trained policy.")
+            reward, _ = evaluate_policy(
+                self.trainer.policy,  # type: ignore[arg-type]
+                self.eval_env,
+                n_eval_episodes=3,
+                render=True,  # comment out to speed up
+            )
+            print(f"Reward after training: {reward}")
 
-        print("Evaluating the trained policy.")
-        reward, _ = evaluate_policy(
-            self.trainer.policy,  # type: ignore[arg-type]
-            self.eval_env,
-            n_eval_episodes=3,
-            render=True,  # comment out to speed up
-        )
-        print(f"Reward after training: {reward}")
+            print(f"Saving the policy to {policy_path}")
+            torch.save(self.trainer.policy.state_dict(), policy_path)  
 
-        # save the trained policy
-        print(self.trainer.policy)
+        return self.trainer.policy
 
 
 

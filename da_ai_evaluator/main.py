@@ -51,7 +51,11 @@ def main(cfg: DictConfig):
     # print(f"Observation shape: {obs.shape}, Action space: {train_envs.action_space}")
     # sys.exit()
     # IL model training algorithm is to be added here 
-    Trainer(train_envs, eval_envs, trajectories, cfg.seed, cfg.algorithm.name, cfg.).train()
+    policy = Trainer(train_envs, eval_envs, trajectories, cfg.seed, cfg.algorithm.name, cfg.algorithm).train()
+
+    
+
+
 
 
 

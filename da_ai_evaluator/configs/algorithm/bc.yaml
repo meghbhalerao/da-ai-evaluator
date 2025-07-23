@@ -5,7 +5,7 @@ defaults:
 name: bc
 seed: 0
 log_path: ./logs/bc
-
+load_pretrained_policy: true
 training_params:
   epochs: 100
   validation_split: 0.15
