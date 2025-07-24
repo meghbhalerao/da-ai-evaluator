@@ -4,11 +4,13 @@ import wandb
 import sys
 import os
 from augmentation.rollouts import CollectRollouts
+from augmentation.model_augmentation import MentalModelAugmentation
 from policies.keyboard_agent import HumanKeyboardPolicyAgent
 from environments import *
 from dataloaders.dataloader import convert_data_format
 from trainers.trainer import Trainer
 from environments.make_env import make_vec_env
+from utils.viz_utils import VizPolicy
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig):
@@ -46,17 +48,22 @@ def main(cfg: DictConfig):
         cfg.seed,
         cfg.environment.wrapper_class
     )
-    # print(train_envs.reset())
-    # obs = train_envs.reset()
-    # print(f"Observation shape: {obs.shape}, Action space: {train_envs.action_space}")
-    # sys.exit()
-    # IL model training algorithm is to be added here 
-    policy = Trainer(train_envs, eval_envs, trajectories, cfg.seed, cfg.algorithm.name, cfg.algorithm).train()
 
+    policy = Trainer(train_envs, eval_envs, trajectories, cfg.seed, cfg.algorithm).train()
+
+    if cfg.policy.viz_policy_after_train:
+        # visualize the trained policy
+        VizPolicy(policy, cfg.environment).visualize()
+
+    if cfg.augmentation.name == 'mentalmodel':
+        augmented_trajectories = MentalModelAugmentation(policy, eval_envs, cfg.augmentation, num_initial_trajectories=10).augment()
+    else:
+        raise NotImplementedError(f"Augmentation type {cfg.augmentation.name} not implemented yet!")
     
 
+    # visualization mechanism of the augmented trajectories in the environment
 
-
+    wandb.finish()
 
 
 if __name__ == "__main__":

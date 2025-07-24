@@ -11,19 +11,20 @@ from imitation.util.util import make_vec_env
 from utils.path_utils import find_git_root
 import os
 import torch
-
+from imitation.util.logger import WandbOutputFormat
 POLICY_SAVE_FOLDER = os.path.join(find_git_root(),"da_ai_evaluator", "saved_stuff", "policies")
 os.makedirs(POLICY_SAVE_FOLDER, exist_ok=True)
 
 class Trainer():
-    def __init__(self, env, eval_env, demonstrations, seed, algorithm, algo_config):
+    def __init__(self, env, eval_env, demonstrations, seed, algo_config):
         self.env = env
         self.eval_env = eval_env
         self.seed = seed
-        if algorithm == "bc":
-            self.trainer = bc.BC(observation_space=self.env.observation_space, action_space=env.action_space, demonstrations=demonstrations, rng=seed)
+        self.algo_config  = algo_config
+        if algo_config.name == "bc":
+            self.trainer = bc.BC(observation_space=self.env.observation_space, action_space=env.action_space, demonstrations=demonstrations, rng=seed, log_wandb = True)
         else:
-            raise NotImplementedError(f"Algorithm {algorithm} is not implemented yet!")
+            raise NotImplementedError(f"Algorithm {algo_config.name} is not implemented yet!")
         self.trainer_config = algo_config.training_params
         
     def train(self):
@@ -35,13 +36,15 @@ class Trainer():
             render=True,  # comment out to speed up
         )
         print(f"Reward before training: {reward}")
+
         # Save the state_dict
-        policy_path = os.path.join(POLICY_SAVE_FOLDER, f"{self.env.spec.id}_policy.pth")
-        if os.path.exists(policy_path) and self.trainer_config.load_pretrained_policy:
+        policy_path = os.path.join(POLICY_SAVE_FOLDER, f"{self.env.get_attr("spec")[0].id}_policy_epochs_{self.trainer_config.epochs}.pth")
+
+        if os.path.exists(policy_path) and self.algo_config.load_pretrained_policy:
             print(f"Policy already exists at {policy_path}, hence loading pretrained policy!")
             self.trainer.policy.load_state_dict(torch.load(policy_path))
         else:
-            print("Training a policy using Behavior Cloning")
+            print(f"Training a policy using Behavior Cloning for {self.trainer_config.epochs} epochs")
             self.trainer.train(n_epochs=self.trainer_config.epochs)
 
             print("Evaluating the trained policy.")

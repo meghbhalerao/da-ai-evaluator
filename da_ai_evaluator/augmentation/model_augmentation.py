@@ -1,8 +1,8 @@
 class MentalModelAugmentation():
-    def __init__(self, policy, env, augmentation_factor, num_initial_trajectories=10):
+    def __init__(self, policy, env, aug_config, num_initial_trajectories=10):
         self.policy = policy
         self.env = env
-        self.augmentation_factor = augmentation_factor
+        self.augmentation_factor = aug_config.factor
         self.num_augmentations = int(self.augmentation_factor * num_initial_trajectories) - num_initial_trajectories
 
     def augment(self):
@@ -21,5 +21,4 @@ class MentalModelAugmentation():
                 trajectory.append((obs, action, reward, next_obs, done))
                 obs = next_obs
             augmented_trajectories.append(trajectory)
-        
         return augmented_trajectories

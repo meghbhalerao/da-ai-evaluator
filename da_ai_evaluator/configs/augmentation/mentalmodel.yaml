@@ -1,0 +1,3 @@
+name: mentalmodel
+factor: 2 # the factor we want to increase the dataset by
+

@@ -6,6 +6,7 @@ defaults:
   - rollout: rollout 
   - environment: flappy_bird_gym
   - algorithm: bc
+  - augmentation: mentalmodel
 
 
 seed: 0
