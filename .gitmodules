@@ -4,3 +4,6 @@
 [submodule "da_ai_evaluator/environments/flappy-bird-gym"]
 	path = da_ai_evaluator/environments/flappy-bird-gym
 	url = git@github.com:meghbhalerao/flappy-bird-gym.git
+[submodule "da_ai_evaluator/packages/stable-baselines3"]
+	path = da_ai_evaluator/packages/stable-baselines3
+	url = git@github.com:meghbhalerao/stable-baselines3.git
