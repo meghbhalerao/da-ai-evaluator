@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import pickle
 import os
 import sys
-from packages.imitation.src.imitation.data.types import TrajectoryWithRew
+from packages.imitation.src.imitation.data.types import TrajectoryWithRew, TrajectoryWithRewAndLatent
 
 import numpy as np
 
@@ -48,7 +48,10 @@ def convert_data_format(data_path, env_id, screen_size=(288, 512), normalize_obs
         if traj_file.endswith('.pkl'):
             with open(os.path.join(data_path, traj_file), 'rb') as f:
                 trajectory = pickle.load(f)
-                states, actions, obs, rewards = trajectory['game_states'], np.array(trajectory['actions']), np.array(trajectory['image_obs']), np.array(trajectory['rewards'], dtype=np.float32)  
+                
+                states, actions, obs, rewards = trajectory['game_states'], np.array(trajectory['actions']), np.array(trajectory['image_obs']), np.array(trajectory['rewards'], dtype=np.float32) 
+                
+                scores = [state['score'] for state in states]
 
                 simple_obs = get_obs_flappy_bird_simple(states, screen_size=screen_size, normalize_obs=normalize_obs)
                 infos = [{"state": state, "simple_obs": simple_obs} for state, simple_obs in zip(states, simple_obs)][:-1]

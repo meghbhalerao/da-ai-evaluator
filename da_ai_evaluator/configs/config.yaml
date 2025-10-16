@@ -11,3 +11,6 @@ defaults:
 
 seed: 0
 use_collected_traj: true
+group_criteria: length
+group_size: 5
+num_groups: null

@@ -1,0 +1,2 @@
+python main.py algorithm.load_pretrained_policy=false environment.num_envs=8 algorithm=diff_trans algorithm.training_params.batch_size=128 group_size=15 algorithm.training_params.total_timesteps=500000 environment.env_params.render_mode=human algorithm.policy_viz_params.save_video_policy=true
+l;s

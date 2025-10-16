@@ -8,3 +8,4 @@ env_params:
   bird_color: yellow
   pipe_color: green
   background: day
+  render_mode: human

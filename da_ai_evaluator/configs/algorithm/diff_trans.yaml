@@ -1,0 +1,173 @@
+# required settings
+load_pretrained_policy: false
+name: diff_trans
+# General settings
+vis_wdir: "default_folder"
+phase: sample
+
+navi_save_dir: "navi_release"
+rnet_save_dir: "rnet_release"
+cnet_save_dir: "cnet_release"
+
+
+project: "saved_stuff"
+wandb_pj_name: ""
+entity: ""
+exp_name: "diff_trans"
+device: "0"
+
+window: 120
+
+batch_size: 32
+learning_rate: 0.0002
+total_timesteps: 8000000
+
+checkpoint: ""
+data_root_folder: ""
+
+# Navigation model settings
+n_dec_layers_nav: 4
+n_head_nav: 4
+d_k_nav: 256
+d_v_nav: 256
+d_model_nav: 512
+
+# Testing flags
+test_on_train: false
+
+# Loss settings
+use_l2_loss: false
+compute_metrics: false
+
+# Interaction model settings
+n_dec_layers: 4
+n_head: 4
+d_k: 256
+d_v: 256
+d_model: 512
+
+# Condition flags
+add_contact_label: false
+use_object_split: false
+add_start_end_object_pos_rot: false
+add_start_end_object_pos: false
+add_start_end_object_pos_xy: false
+
+# Waypoint settings
+use_random_waypoints: false
+vis_waypoints: false
+
+# Model configuration flags
+remove_target_z: false
+use_guidance_in_denoising: false
+use_optimization_in_denoising: false
+add_rest_human_skeleton: false
+use_first_frame_bps: false
+input_full_human_pose: false
+use_two_stage_pipeline: false
+use_unified_interaction_model: false
+return_diff_level_res: false
+
+# Testing settings
+test_object_names:
+  - "largebox"
+action_name: "lift"
+
+use_long_planned_path: false
+use_long_planned_path_only_navi: false
+use_planned_path: false
+
+# Loss weights
+loss_w_feet: 1.0
+loss_w_fk: 1.0
+loss_w_obj_pts: 1.0
+
+# Interaction model flags
+add_interaction_root_xy_ori: false
+add_interaction_feet_contact: false
+add_object_in_wrist_loss: false 
+add_object_vel_loss: false
+add_wrist_relative: false
+add_object_static: false
+use_noisy_traj: false
+milestone: 10
+
+# Finger motion settings
+add_finger_motion: false
+
+finger_project: "./experiments"
+finger_wandb_pj_name: "omomo_only_finger"
+finger_entity: ""
+finger_exp_name: "fnet_release"
+finger_device: "0"
+
+finger_window: 30
+finger_batch_size: 32
+finger_learning_rate: 0.0002
+
+finger_checkpoint: ""
+
+# Finger model architecture
+finger_n_dec_layers: 4
+finger_n_head: 4
+finger_d_k: 256
+finger_d_v: 256
+finger_d_model: 512
+
+# Finger generation flags
+finger_generate_refine_dataset: false
+finger_generate_quant_eval: false
+finger_generate_vis_eval: false
+finger_milestone: "17"
+
+# Finger testing flags
+finger_test_sample_res: false
+finger_test_sample_res_on_train: false
+
+# Finger loss settings
+finger_use_l2_loss: false
+
+# Finger condition flags
+finger_remove_condition: false
+finger_normalize_condition: false
+finger_add_start_human_pose: false
+finger_add_hand_pose: false
+finger_add_hand_trans_only: false
+finger_add_hand_foot_trans: false
+
+# Finger processing flags
+finger_cano_init_pose: false
+finger_pred_hand_jpos_only_from_obj: false
+finger_pred_palm_jpos_from_obj: false
+finger_pred_hand_jpos_and_rot_from_obj: false
+finger_run_whole_pipeline: false
+finger_add_object_bps: false
+finger_add_hand_processing: false
+
+# Finger evaluation flags
+finger_for_quant_eval: false
+finger_use_gt_hand_for_eval: false
+finger_use_object_split: false
+finger_add_palm_jpos_only: false
+
+# Finger data flags
+finger_use_blender_data: false
+finger_use_wandb: false
+finger_use_arctic: false
+finger_omomo_obj: ""
+
+# Finger sensor flags
+finger_train_ambient_sensor: false
+finger_train_proximity_sensor: false
+
+# Finger condition settings
+finger_wrist_obj_traj_condition: false
+finger_ambient_sensor_condition: false
+finger_contact_label_condition: false
+
+# Default true flags (from set_defaults)
+finger_use_joints24: true
+finger_use_omomo: true
+finger_train_both_sensor: true
+finger_proximity_sensor_condition: true
+finger_ref_pose_condition: true

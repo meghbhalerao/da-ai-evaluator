@@ -4,7 +4,7 @@ from flappy_bird_gym.envs.flappy_bird_env_rgb import FlappyBirdEnvRGB
 from flappy_bird_gym.envs.flappy_bird_env_simple import FlappyBirdEnvSimple
 from gymnasium.envs.registration import register
 from gymnasium import make
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 
 
 
@@ -26,8 +26,6 @@ __all__ = [
     FlappyBirdEnvSimple.__name__,
 ]
 
-
-
 def make_env(gym_id, env_params=None):
     def _init():
         if gym_id == 'FlappyBird-v0':
@@ -42,7 +40,7 @@ def make_vec_env(gym_id, env_params, num_envs, seed, wrapper_class=None):
         # eval_envs = gym.make_vec(gym_id, num_envs = num_envs, vectorization_mode = 'async', **env_params)
 
         train_env = SubprocVecEnv([make_env(gym_id, env_params) for _ in range(num_envs)])
-        eval_env = SubprocVecEnv([make_env(gym_id, env_params) for _ in range(num_envs)])
+        eval_env = DummyVecEnv([make_env(gym_id, env_params) for _ in range(num_envs)])
         # train_env = gym.vector.AsyncVectorEnv([make_env(gym_id, env_params)] * num_envs)
 
         # eval_env = gym.vector.AsyncVectorEnv([make_env(gym_id, env_params)] * num_envs)

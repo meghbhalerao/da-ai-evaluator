@@ -1,7 +1,5 @@
 defaults:
   - _self_
-
-
 name: bc
 seed: 0
 log_path: ./logs/bc
@@ -16,6 +14,6 @@ training_params:
 
 evaluation_params:
   ep_length: 400
-  num_eval_episodes: 1000
+  num_eval_episodes: 10
   display: false
   load_from_ckpt: true

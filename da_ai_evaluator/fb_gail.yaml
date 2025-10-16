@@ -1,0 +1,35 @@
+program: main.py
+method: grid
+
+parameters:
+  seed:
+    value: 0
+  group_size:
+    value: 15
+  
+  environment.num_envs:
+    value: 8
+  environment.env_params.render_mode:
+    value: human
+
+  algorithm:
+    value: gail
+  algorithm.rl_training_params.epochs:
+    values: [5, 10, 20, 40, 60]
+  algorithm.rl_training_params.batch_size:
+    value: 64
+  algorithm.rl_training_params.learning_rate: 
+    values: [1e-5, 1e-4, 1e-3, 1e-2, 0.0004, 0.1]
+  algorithm.rl_training_params.ent_coef: 
+    values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  algorithm.rl_training_params.gamma:
+    value: 0.95
+  algorithm.training_params.n_disc_updates_per_round:
+    values: [4, 8, 16, 32]
+
+command:
+  - python
+  - ${program}
+  - ${args_no_hyphens}
+  - algorithm.policy_viz_params.save_video_policy=true
+  - algorithm.training_params.total_timesteps=4000000
