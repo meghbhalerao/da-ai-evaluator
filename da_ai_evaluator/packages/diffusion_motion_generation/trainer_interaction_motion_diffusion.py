@@ -32,7 +32,9 @@ from packages.diffusion_motion_generation.manip.data.cano_traj_dataset import (
 from packages.diffusion_motion_generation.manip.model.transformer_object_motion_cond_diffusion import (
     ObjectCondGaussianDiffusion,
 )
-from packages.diffusion_motion_generation.manip.utils.model_utils import apply_rotation_to_data
+from packages.diffusion_motion_generation.manip.utils.model_utils import (
+    apply_rotation_to_data,
+)
 from packages.diffusion_motion_generation.manip.utils.trainer_utils import (
     canonicalize_first_human_and_waypoints,
     cycle,
@@ -135,7 +137,6 @@ class Trainer(object):
         self.data_root_folder = self.opt.data_root_folder
         self.prep_dataloader(window_size=opt.window)
 
-
         self.bm_dict = self.ds.bm_dict
 
         self.add_start_end_object_pos = self.opt.add_start_end_object_pos
@@ -162,7 +163,9 @@ class Trainer(object):
 
         self.add_rest_human_skeleton = self.opt.add_rest_human_skeleton
 
-        self.loss_w_feet = (self.opt.loss_w_feet if hasattr(self.opt, "loss_w_feet") else False)
+        self.loss_w_feet = (
+            self.opt.loss_w_feet if hasattr(self.opt, "loss_w_feet") else False
+        )
 
         self.loss_w_fk = self.opt.loss_w_fk if hasattr(self.opt, "loss_w_fk") else False
         self.loss_w_obj_pts = (
@@ -191,24 +194,40 @@ class Trainer(object):
             self.right_hand_vertex_idxs,
         ) = self.load_hand_vertex_ids()
 
-        self.left_palm_vertex_idxs, self.right_palm_vertex_idxs = self.load_palm_vertex_ids()
-
-
+        self.left_palm_vertex_idxs, self.right_palm_vertex_idxs = (
+            self.load_palm_vertex_ids()
+        )
 
     def load_palm_vertex_ids(self):
-        data = pickle.load(open(os.path.join(self.data_root_folder, "..",
-                "smpl_all_models", "palm_sample_indices.pkl"), 
-                "rb"))
-        
+        data = pickle.load(
+            open(
+                os.path.join(
+                    self.data_root_folder,
+                    "..",
+                    "smpl_all_models",
+                    "palm_sample_indices.pkl",
+                ),
+                "rb",
+            )
+        )
+
         left_hand_vids = data["left_hand"]
         right_hand_vids = data["right_hand"]
 
         return left_hand_vids, right_hand_vids
 
-
     def load_hand_vertex_ids(self):
-        data = pickle.load(open(os.path.join(self.data_root_folder, "../", "smpl_all_models", "MANO_SMPLX_vertex_ids.pkl"), 
-                "rb"))
+        data = pickle.load(
+            open(
+                os.path.join(
+                    self.data_root_folder,
+                    "../",
+                    "smpl_all_models",
+                    "MANO_SMPLX_vertex_ids.pkl",
+                ),
+                "rb",
+            )
+        )
 
         left_hand_vids = data["left_hand"]
         right_hand_vids = data["right_hand"]
@@ -216,7 +235,6 @@ class Trainer(object):
         hand_vids = np.concatenate((left_hand_vids, right_hand_vids), axis=0)
 
         return hand_vids, left_hand_vids, right_hand_vids
-
 
     def load_and_freeze_clip(self, clip_version):
         clip_model, clip_preprocess = clip.load(clip_version, device="cuda", jit=False)
@@ -353,7 +371,7 @@ class Trainer(object):
         )
         # BS X max_timesteps
         tmp_mask = tmp_mask.to(data.device)[:, :, None]  # BS X T X 1
-    
+
         # Missing regions are ones, the condition regions are zeros.
         mask = torch.ones_like(data[:, :, :3]).to(data.device)  # BS X T X 3
         mask = mask * (~tmp_mask)  # Only the actual_seq_len frame is 0
@@ -395,8 +413,9 @@ class Trainer(object):
     def prep_mimic_A_star_path_condition_mask_pos_xy_only(self, data, actual_seq_len):
         # data: BS X T X D
         # actual_seq_len: BS
-        tmp_mask = torch.arange(self.window).expand(data.shape[0], self.window) == (actual_seq_len[:, None].repeat(1, self.window) - 1)
-
+        tmp_mask = torch.arange(self.window).expand(data.shape[0], self.window) == (
+            actual_seq_len[:, None].repeat(1, self.window) - 1
+        )
 
         # BS X max_timesteps
         tmp_mask = tmp_mask.to(data.device)[:, :, None]  # BS X T X 1
@@ -412,14 +431,16 @@ class Trainer(object):
         else:
             # Use fixed number of waypoints.
             random_steps = [30 - 1, 60 - 1, 90 - 1]
-        
+
         for selected_t in random_steps:
             if selected_t < self.window - 1:
                 bs_selected_t = torch.from_numpy(np.asarray([selected_t]))  # 1
                 bs_selected_t = bs_selected_t[None, :].repeat(
                     data.shape[0], self.window
                 )  # BS X T
-                curr_tmp_mask = torch.arange(self.window).expand(data.shape[0], self.window) == (bs_selected_t)
+                curr_tmp_mask = torch.arange(self.window).expand(
+                    data.shape[0], self.window
+                ) == (bs_selected_t)
                 # BS X max_timesteps
                 curr_tmp_mask = curr_tmp_mask.to(data.device)[:, :, None]  # BS X T X 1
                 tmp_mask = (~curr_tmp_mask) * tmp_mask
@@ -434,7 +455,9 @@ class Trainer(object):
 
         mask = torch.cat((mask, rotation_mask), dim=-1)
 
-        mask[:, 0, :] = torch.zeros(data.shape[0], data.shape[2]).to(data.device)  # BS X D
+        mask[:, 0, :] = torch.zeros(data.shape[0], data.shape[2]).to(
+            data.device
+        )  # BS X D
 
         return mask
 
@@ -463,23 +486,19 @@ class Trainer(object):
                 human_data = data_dict["motion"].cuda()  # BS X T X (24*3 + 22*6)
                 obj_data = data_dict["obj_motion"].cuda()  # BS X T X (3+9)
 
-
                 obj_bps_data = (
                     data_dict["input_obj_bps"].cuda().reshape(-1, 1, 1024 * 3)
                 )  # BS X 1 X 1024 X 3 -> BS X 1 X (1024*3)
                 ori_data_cond = obj_bps_data  # BS X 1 X (1024*3)
 
-
                 rest_human_offsets = data_dict[
                     "rest_human_offsets"
                 ].cuda()  # BS X 24 X 3
-
 
                 # Generate padding mask
                 actual_seq_len = (
                     data_dict["seq_len"] + 1
                 )  # BS, + 1 since we need additional timestep for noise level
-
 
                 tmp_mask = torch.arange(self.window + 1).expand(
                     obj_data.shape[0], self.window + 1
@@ -487,12 +506,12 @@ class Trainer(object):
                 # BS X max_timesteps
                 padding_mask = tmp_mask[:, None, :].to(obj_data.device)
 
-
                 # Generating mask for object waypoints
                 if self.add_start_end_object_pos_rot:
                     cond_mask = self.prep_start_end_condition_mask(
-                        obj_data, data_dict["seq_len"])
-                    
+                        obj_data, data_dict["seq_len"]
+                    )
+
                 elif self.add_start_end_object_pos:
                     cond_mask = self.prep_start_end_condition_mask_pos_only(
                         obj_data, data_dict["seq_len"]
@@ -515,7 +534,6 @@ class Trainer(object):
                             obj_data, data_dict["seq_len"]
                         )
 
-
                     cond_mask = self.prep_mimic_A_star_path_condition_mask_pos_xy_only(
                         obj_data, data_dict["seq_len"]
                     )
@@ -524,15 +542,17 @@ class Trainer(object):
                 else:
                     cond_mask = None
 
-
-
                 # Generating mask for object static condition
                 if self.add_object_static:
-                    object_static_flag = data_dict["object_static_flag"].cuda()  # BS X T X 1
+                    object_static_flag = data_dict[
+                        "object_static_flag"
+                    ].cuda()  # BS X T X 1
                     cond_mask[..., :3] *= 1.0 - object_static_flag
 
                     # randomly mask orientation
-                    random_tensor = torch.rand_like(object_static_flag[:, :1, :1])  # BS X 1 X 1
+                    random_tensor = torch.rand_like(
+                        object_static_flag[:, :1, :1]
+                    )  # BS X 1 X 1
                     random_tensor[random_tensor > 0.7] = 1
                     random_tensor[random_tensor <= 0.3] = 0
                     object_static_flag_random = (
@@ -542,9 +562,9 @@ class Trainer(object):
 
                 # Generating mask for human motion
                 if self.pred_human_motion:
-                    
+
                     human_cond_mask = torch.ones_like(human_data).to(human_data.device)
-                    
+
                     if self.input_first_human_pose:
                         human_cond_mask[:, 0, :] = 0
                     elif self.input_full_human_pose:
@@ -557,7 +577,9 @@ class Trainer(object):
                             (human_data, root_xy_ori), dim=-1
                         )  # BS X T X (24*3 + 22*6 + 6)
 
-                        root_xy_ori_mask = torch.ones_like(root_xy_ori).to(human_data.device)
+                        root_xy_ori_mask = torch.ones_like(root_xy_ori).to(
+                            human_data.device
+                        )
 
                         tmp_mask = root_xy_ori_mask[
                             :, [0, 30 - 1, 60 - 1, 90 - 1, 120 - 1], :
@@ -570,8 +592,8 @@ class Trainer(object):
                             random_tensor
                         )
                         human_cond_mask = torch.cat(
-                            (human_cond_mask, root_xy_ori_mask), dim=-1)
-                    
+                            (human_cond_mask, root_xy_ori_mask), dim=-1
+                        )
 
                     # Generating mask for wrist relative condition
                     if self.add_wrist_relative:
@@ -582,7 +604,8 @@ class Trainer(object):
                             (human_data, wrist_relative), dim=-1
                         )  # BS X T X (24*3 + 22*6 + 18)
                         wrist_relative_mask = torch.zeros_like(wrist_relative).to(
-                            human_data.device)
+                            human_data.device
+                        )
 
                         human_cond_mask = torch.cat(
                             (human_cond_mask, wrist_relative_mask), dim=-1
@@ -597,7 +620,6 @@ class Trainer(object):
                 else:
                     contact_labels = None
 
-
                 with autocast(enabled=self.amp):
                     if self.pred_human_motion:
                         if self.use_object_keypoints:
@@ -610,11 +632,13 @@ class Trainer(object):
                                     "feet_contact"
                                 ].cuda()  # BS X T X 4
 
-                            data = torch.cat((obj_data, human_data, contact_data), dim=-1)
-
+                            data = torch.cat(
+                                (obj_data, human_data, contact_data), dim=-1
+                            )
 
                             cond_mask = torch.cat(
-                                (cond_mask,
+                                (
+                                    cond_mask,
                                     torch.ones_like(contact_data).to(cond_mask.device),
                                 ),
                                 dim=-1,
@@ -634,7 +658,7 @@ class Trainer(object):
                                 ),
                                 dim=-1,
                             )
-                        
+
                         if self.add_language_condition:
                             text_anno_data = data_dict["text"]
                             language_input = self.encode_text(
@@ -718,11 +742,16 @@ class Trainer(object):
                         p for p in self.model.parameters() if p.grad is not None
                     ]
 
-                    total_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2.0).to(obj_data.device) for p in parameters]
+                    total_norm = torch.norm(
+                        torch.stack(
+                            [
+                                torch.norm(p.grad.detach(), 2.0).to(obj_data.device)
+                                for p in parameters
+                            ]
                         ),
                         2.0,
                     )
-                    
+
                     if torch.isnan(total_norm):
                         print("WARNING: NaN gradients. Skipping to next data...")
                         nan_exists = True
@@ -1066,7 +1095,8 @@ class Trainer(object):
                                     padding_mask,
                                     language_input=language_input,
                                     contact_labels=contact_labels,
-                                    rest_human_offsets=rest_human_offsets,)
+                                    rest_human_offsets=rest_human_offsets,
+                                )
 
                             else:
                                 all_res_list = self.ema.ema_model.sample(
@@ -1109,9 +1139,7 @@ class Trainer(object):
             self.step += 1
             step_end_time = time.time()
             if idx % 20 == 0:
-                print(
-                    "20 step time: %.4f sec" % (step_end_time - step_start_time)
-                )
+                print("20 step time: %.4f sec" % (step_end_time - step_start_time))
 
         print("training complete")
 
@@ -1138,17 +1166,20 @@ class Trainer(object):
             drop_last=False,
         )
 
-        for s_idx, val_data_dict in tqdm(enumerate(test_loader), ncols=150, desc="Sampling sequences"):
+        for s_idx, val_data_dict in tqdm(
+            enumerate(test_loader), ncols=150, desc="Sampling sequences"
+        ):
 
             print(f"Sampling sequence {s_idx} / {len(test_loader)} ...")
 
             if self.add_wrist_relative:
                 wrist_relative_batch = val_data_dict["wrist_relative"].cuda()
-                wrist_relative_mask_batch = torch.zeros_like(wrist_relative_batch).cuda()
+                wrist_relative_mask_batch = torch.zeros_like(
+                    wrist_relative_batch
+                ).cuda()
             else:
                 wrist_relative_batch = None
                 wrist_relative_mask_batch = None
-
 
             if self.add_object_static:
                 object_static_flag_batch = val_data_dict["object_static_flag"].cuda()
@@ -1172,7 +1203,7 @@ class Trainer(object):
                     num_samples_per_seq=num_samples_per_seq,
                 )
             )
-            
+
             # the below is only for debugging purposes, to see if the code is running end to end
             if s_idx == 1:
                 break
@@ -1207,13 +1238,10 @@ class Trainer(object):
                 "wrist_relative and wrist_relative_mask must be provided if add_wrist_relative is True"
             )
 
-
-
         seq_name_list = val_data_dict["seq_name"]
         object_name_list = val_data_dict["obj_name"]
         start_frame_idx_list = val_data_dict["s_idx"]
         end_frame_idx_list = val_data_dict["e_idx"]
-
 
         val_human_data = val_data_dict["motion"].cuda()
         val_obj_data = val_data_dict["obj_motion"].cuda()
@@ -1229,22 +1257,21 @@ class Trainer(object):
             contact_labels = None
 
         # Generate padding mask
-        actual_seq_len = (val_data_dict["seq_len"] + 1)  # BS, + 1 since we need additional timestep for noise level
+        actual_seq_len = (
+            val_data_dict["seq_len"] + 1
+        )  # BS, + 1 since we need additional timestep for noise level
 
         tmp_mask = torch.arange(self.window + 1).expand(
             val_obj_data.shape[0], self.window + 1
         ) < actual_seq_len[:, None].repeat(1, self.window + 1)
         # BS X max_timesteps
 
-
         padding_mask = tmp_mask[:, None, :].to(val_obj_data.device)
-
 
         if self.add_waypoints_xy:
             end_pos_cond_mask = self.prep_start_end_condition_mask_pos_only(
                 val_obj_data, val_data_dict["seq_len"]
             )
-            
 
             cond_mask = self.prep_mimic_A_star_path_condition_mask_pos_xy_only(
                 val_obj_data, val_data_dict["seq_len"]
@@ -1258,15 +1285,12 @@ class Trainer(object):
         if add_object_static:
             cond_mask[..., :12] *= 1.0 - object_static_flag.to(cond_mask.device)
 
-
-
         if self.pred_human_motion:
             human_cond_mask = torch.ones_like(val_human_data).to(val_human_data.device)
             if self.input_first_human_pose:
                 human_cond_mask[:, 0, :] = 0
             elif self.input_full_human_pose:
                 human_cond_mask *= 0
-        
 
         # Not used in dataset evaluation, padding with 0.
         if add_root_ori:
@@ -1320,8 +1344,6 @@ class Trainer(object):
             guidance_fn = self.apply_different_guidance_loss
         else:
             guidance_fn = None
-
- 
 
         if self.add_language_condition:
             text_anno_data = val_data_dict["text"]
@@ -1409,10 +1431,11 @@ class Trainer(object):
             dest_out_obj_root_folder = os.path.join("./results", dest_folder)
             if not os.path.exists(dest_out_obj_root_folder):
                 os.makedirs(dest_out_obj_root_folder)
-        
 
         curr_dest_out_mesh_folder = os.path.join(dest_out_obj_root_folder, vis_tag)
-        curr_dest_out_vid_path = os.path.join(dest_out_obj_root_folder, "sample_" + str(s_idx) + ".mp4")
+        curr_dest_out_vid_path = os.path.join(
+            dest_out_obj_root_folder, "sample_" + str(s_idx) + ".mp4"
+        )
 
         *_, motion_results_path = self.gen_vis_res(
             all_res_list,
@@ -1588,7 +1611,9 @@ class Trainer(object):
         object_mesh_verts_list = []
         for idx in range(num_seq):
             curr_global_rot_mat = global_rot_mat[idx]  # T X 22 X 3 X 3
-            curr_local_rot_mat = quat_ik_torch(curr_global_rot_mat, self.data_root_folder)  # T X 22 X 3 X 3
+            curr_local_rot_mat = quat_ik_torch(
+                curr_global_rot_mat, self.data_root_folder
+            )  # T X 22 X 3 X 3
             curr_local_rot_aa_rep = transforms.matrix_to_axis_angle(
                 curr_local_rot_mat
             )  # T X 22 X 3
@@ -1992,7 +2017,9 @@ class Trainer(object):
         relative_left_palm_jpos = torch.matmul(
             pred_obj_rot_mat.detach().transpose(2, 3),
             left_palm_to_obj_com[:, :, :, None],
-        ).squeeze(-1)  # BS X T X 3
+        ).squeeze(
+            -1
+        )  # BS X T X 3
         relative_right_palm_jpos = torch.matmul(
             pred_obj_rot_mat.detach().transpose(2, 3),
             right_palm_to_obj_com[:, :, :, None],
@@ -2044,7 +2071,9 @@ class Trainer(object):
         right_wrist_to_plam = right_palm_jpos - right_wrist_jpos  # BS X T X 3
         relative_left_wrist_to_palm = torch.matmul(
             pred_obj_rot_mat.detach().transpose(2, 3), left_wrist_to_palm[:, :, :, None]
-        ).squeeze(-1)  # BS X T X 3
+        ).squeeze(
+            -1
+        )  # BS X T X 3
         relative_right_wrist_to_plam = torch.matmul(
             pred_obj_rot_mat.detach().transpose(2, 3),
             right_wrist_to_plam[:, :, :, None],
@@ -2354,7 +2383,9 @@ class Trainer(object):
 
         for idx in range(num_seq):
             curr_global_rot_mat = human_jnts_global_rot_mat[idx]  # T X 22 X 3 X 3
-            curr_local_rot_mat = quat_ik_torch(curr_global_rot_mat, self.data_root_folder)  # T X 22 X 3 X 3
+            curr_local_rot_mat = quat_ik_torch(
+                curr_global_rot_mat, self.data_root_folder
+            )  # T X 22 X 3 X 3
             curr_local_rot_aa_rep = transforms.matrix_to_axis_angle(
                 curr_local_rot_mat
             )  # T X 22 X 3
@@ -2702,18 +2733,17 @@ class Trainer(object):
             global_rot_6d
         )  # N X T X 22 X 3 X 3
 
-        trans2joint = (data_dict["trans2joint"].to(all_res_list.device).squeeze(1)
+        trans2joint = (
+            data_dict["trans2joint"].to(all_res_list.device).squeeze(1)
         )  # BS X  3
         seq_len = data_dict[
             "seq_len"
         ]  # BS, should only be used during for single window generation.
 
-
         if all_res_list.shape[0] != trans2joint.shape[0]:
             trans2joint = trans2joint.repeat(num_seq, 1, 1)  # N X 24 X 3
             seq_len = seq_len.repeat(num_seq)  # N
         seq_len = seq_len.detach().cpu().numpy()  # N
-
 
         if finger_all_res_list is not None:
             pred_finger_6d = finger_all_res_list.reshape(
@@ -2725,8 +2755,10 @@ class Trainer(object):
 
         for idx in range(num_seq):
             curr_global_rot_mat = global_rot_mat[idx]  # T X 22 X 3 X 3
- 
-            curr_local_rot_mat = quat_ik_torch(curr_global_rot_mat, self.data_root_folder)  # T X 22 X 3 X 3
+
+            curr_local_rot_mat = quat_ik_torch(
+                curr_global_rot_mat, self.data_root_folder
+            )  # T X 22 X 3 X 3
             curr_local_rot_aa_rep = transforms.matrix_to_axis_angle(
                 curr_local_rot_mat
             )  # T X 22 X 3
@@ -3083,7 +3115,9 @@ class Trainer(object):
             trans2joint = trans2joint.repeat(num_seq, 1, 1)  # N X 24 X 3
 
         curr_global_rot_mat = global_rot_mat[idx]  # T X 22 X 3 X 3
-        curr_local_rot_mat = quat_ik_torch(curr_global_rot_mat, self.data_root_folder)  # T X 22 X 3 X 3
+        curr_local_rot_mat = quat_ik_torch(
+            curr_global_rot_mat, self.data_root_folder
+        )  # T X 22 X 3 X 3
         curr_local_rot_aa_rep = transforms.matrix_to_axis_angle(
             curr_local_rot_mat
         )  # T X 22 X 3
@@ -3303,7 +3337,6 @@ class Trainer(object):
             None
         ].clone()  # unnormalized
 
-
         if self.add_waypoints_xy:  # Need to consider overlapped frames.
             waypoints_com_pos = planned_obj_path[None][
                 :, 1:, :
@@ -3344,7 +3377,7 @@ class Trainer(object):
             ),
             dim=-1,
         )  # BS X T X (3+9)
-        
+
         val_obj_data[:, 0:1, 3:] = obj_initial_rot_mat.to(val_obj_data.device).reshape(
             1, 1, 9
         )  # Reaplce the first frame's object rotation.
@@ -3470,10 +3503,14 @@ class Trainer(object):
             ].cuda()  # BS(1) X 3 X 3
             tmp_val_obj_data[:, 0:1, 3:] = self.ds.prep_rel_obj_rot_mat_w_reference_mat(
                 cano_obj_rot_mat[None], reference_rot_mat[None]
-            ).reshape(-1, 9)  # BS(1) X 3 X 3
+            ).reshape(
+                -1, 9
+            )  # BS(1) X 3 X 3
             tmp_val_obj_data[:, -1:, 3:] = self.ds.prep_rel_obj_rot_mat_w_reference_mat(
                 cano_end_obj_rot_mat[None], reference_rot_mat[None]
-            ).reshape(-1, 9)  # BS(1) X 3 X 3
+            ).reshape(
+                -1, 9
+            )  # BS(1) X 3 X 3
             ##### obj bps #####
             ori_data_cond = (
                 object_data_dict["input_obj_bps"].cuda().reshape(-1, 1, 1024 * 3)
@@ -3690,6 +3727,7 @@ def build_wrist_relative_conditions(
     }
     return available_conditions_wrist_relative
 
+
 def build_interaction_trainer(
     opt,
     device: str,
@@ -3773,7 +3811,9 @@ def run_interaction_trainer_after_sampling(
         all_res_list[idx, :, 12 + 24 * 3 : 12 + 24 * 3 + 22 * 6]
         .clone()
         .reshape(-1, 22, 6)
-    ).reshape(-1, 22, 3, 3)  # T X 22 X 3 X 3
+    ).reshape(
+        -1, 22, 3, 3
+    )  # T X 22 X 3 X 3
     left_wrist_pos = human_jnts[:, 20]  # T X 3
     left_wrist_rot_mat = human_jnts_rot_mat_global[:, 20]  # T X 3 X 3
     right_wrist_pos = human_jnts[:, 21]  # T X 3
@@ -3979,12 +4019,10 @@ def run_train(opt, device):
     save_dir = Path(opt.save_dir)
     wdir = save_dir / "weights"
     wdir.mkdir(parents=True, exist_ok=True)
-    
 
     # Save run settings
     with open(os.path.join(save_dir, "opt.yaml"), "w") as f:
         f.write(OmegaConf.to_yaml(opt))
-
 
     # Define model
     repr_dim = 3 + 9  # Object relative translation and relative rotation matrix
@@ -3992,7 +4030,7 @@ def run_train(opt, device):
     if True:  # opt.pred_human_motion:
         repr_dim += 24 * 3 + 22 * 6
 
-    if True: # opt.use_object_keypoints:
+    if True:  # opt.use_object_keypoints:
         repr_dim += 4
 
     if opt.add_interaction_feet_contact:
@@ -4008,7 +4046,6 @@ def run_train(opt, device):
         loss_type = "l2"
     else:
         loss_type = "l1"
-
 
     diffusion_model = ObjectCondGaussianDiffusion(
         opt,
@@ -4033,9 +4070,6 @@ def run_train(opt, device):
     )
 
     diffusion_model.to(device)
-
-    
-
 
     trainer = Trainer(
         opt,
@@ -4064,7 +4098,7 @@ def run_validation(opt, device):
     if True:  # opt.pred_human_motion:
         repr_dim += 24 * 3 + 22 * 6
 
-    if True: # opt.use_object_keypoints:
+    if True:  # opt.use_object_keypoints:
         repr_dim += 4
 
     if opt.add_interaction_feet_contact:

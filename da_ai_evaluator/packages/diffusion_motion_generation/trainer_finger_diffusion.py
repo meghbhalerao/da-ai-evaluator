@@ -30,7 +30,10 @@ from packages.diffusion_motion_generation.manip.data.grab_dataset import (
     GrabDataset,
     GrabProximitySensorDataset,
 )
-from packages.diffusion_motion_generation.manip.data.hand_foot_dataset import quat_ik_hand, quat_ik_wholebody
+from packages.diffusion_motion_generation.manip.data.hand_foot_dataset import (
+    quat_ik_hand,
+    quat_ik_wholebody,
+)
 from packages.diffusion_motion_generation.manip.data.omomo_dataset import (
     OMOMOAmbientSensorDataset,
     OMOMOBothSensorDataset,
@@ -949,7 +952,9 @@ class Trainer(object):
             # root_trans = curr_global_root_jpos.to(curr_local_rot_aa_rep.device) + curr_trans2joint.to(curr_local_rot_aa_rep.device) # T X 3
             root_trans_gt = curr_global_root_jpos_gt.to(
                 curr_local_rot_aa_rep.device
-            ) + curr_trans2joint.to(curr_local_rot_aa_rep.device)  # T X 3
+            ) + curr_trans2joint.to(
+                curr_local_rot_aa_rep.device
+            )  # T X 3
 
             # Generate global joint position
             bs = 1
@@ -1239,7 +1244,9 @@ class OMOMOTrainer(Trainer):
             # root_trans = curr_global_root_jpos.to(curr_local_rot_aa_rep.device) + curr_trans2joint.to(curr_local_rot_aa_rep.device) # T X 3
             root_trans_gt = curr_global_root_jpos_gt.to(
                 curr_local_rot_aa_rep.device
-            ) + curr_trans2joint.to(curr_local_rot_aa_rep.device)  # T X 3
+            ) + curr_trans2joint.to(
+                curr_local_rot_aa_rep.device
+            )  # T X 3
 
             # Generate global joint position
             gender = "male"

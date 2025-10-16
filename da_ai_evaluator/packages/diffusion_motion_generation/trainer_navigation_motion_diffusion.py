@@ -19,7 +19,10 @@ from torch.optim import Adam
 from torch.utils import data
 
 from argument_parser import parse_opt
-from packages.diffusion_motion_generation.manip.data.humanml3d_dataset import HumanML3DDataset, quat_ik_torch
+from packages.diffusion_motion_generation.manip.data.humanml3d_dataset import (
+    HumanML3DDataset,
+    quat_ik_torch,
+)
 from packages.diffusion_motion_generation.manip.model.transformer_navigation_cond_diffusion import (
     NavigationCondGaussianDiffusion,
 )
@@ -59,7 +62,7 @@ class Trainer(object):
         super().__init__()
 
         self.load_ds = load_ds
-        
+
         self.use_wandb = use_wandb
         if self.use_wandb:
             # Loggers
@@ -250,7 +253,7 @@ class Trainer(object):
                     tmp_mask = ~curr_tmp_mask
                 else:
                     tmp_mask = (~curr_tmp_mask) * tmp_mask
-        
+
         # Missing regions are ones, the condition regions are zeros.
         mask = torch.ones_like(data[:, :, :2]).to(data.device)  # BS X T X 2
         mask = mask * tmp_mask  # Only the actual_seq_len frame is 0
@@ -292,7 +295,7 @@ class Trainer(object):
                     )
                 else:
                     cond_mask = torch.ones_like(human_data)
-                
+
                 # Condition on the first frame's human pose.
                 if self.input_first_human_pose_for_nav:
                     cond_mask[:, 0, :] = 0
@@ -865,7 +868,9 @@ class Trainer(object):
                 curr_timesteps = curr_cond_mask.shape[0]
                 for t_idx in range(curr_timesteps):
                     if curr_cond_mask[t_idx] == 0:
-                        selected_waypoint = data_dict["ori_motion"][idx, t_idx : t_idx + 1, :3]
+                        selected_waypoint = data_dict["ori_motion"][
+                            idx, t_idx : t_idx + 1, :3
+                        ]
 
                         selected_waypoint[:, 2] = 0.05
                         waypoints_list.append(selected_waypoint)
@@ -874,7 +879,11 @@ class Trainer(object):
                 if self.vis_waypoints:
                     self.create_ball_mesh(ball_for_vis_data, ball_mesh_path)
 
-            save_verts_faces_to_mesh_file(mesh_verts.detach().cpu().numpy()[0][: seq_len[idx]], mesh_faces.detach().cpu().numpy(), mesh_save_folder,)
+            save_verts_faces_to_mesh_file(
+                mesh_verts.detach().cpu().numpy()[0][: seq_len[idx]],
+                mesh_faces.detach().cpu().numpy(),
+                mesh_save_folder,
+            )
 
             # Only visualize the first sequence in each batch.
             if idx > 0:
@@ -984,19 +993,18 @@ class Trainer(object):
             :, 0:1, :3
         ]  # BS X 1 X 3, z shouldn't be used!
 
-
         seq_human_root_pos = torch.zeros(
             start_human_root_pos.shape[0], (planned_obj_path.shape[0] - 1) * 30, 3
         ).cuda()
         seq_human_root_pos[:, 0:1, :] = start_human_root_pos.clone()  # unnormalized
-        
+
         if self.add_waypoints_xy:  # Need to consider overlapped frames.
             planned_start_point = planned_obj_path[0:1, :2]  # 1 X 2
             real_start_point = start_human_root_pos[0, 0, :2]  # 1 X 2
             if (
                 torch.norm(planned_start_point.cuda() - real_start_point.cuda()) > 0.1
             ):  # will not happen, will set real_start_point to be planned_start_point.
-                
+
                 seq_human_root_pos = torch.zeros(
                     start_human_root_pos.shape[0], (planned_obj_path.shape[0]) * 30, 3
                 ).cuda()
@@ -1023,8 +1031,6 @@ class Trainer(object):
 
         actual_num_frames = window_cnt * self.window
         seq_human_root_pos = seq_human_root_pos[:, :actual_num_frames]
-
-
 
         if self.add_language_condition_for_nav:
             text_clip_feats_list = self.gen_language_for_long_seq(
@@ -1070,9 +1076,9 @@ class Trainer(object):
                 trans2joint=trans2joint,
                 parents=self.ds.parents,
                 trainer=self,
-                is_interaction=False,))
-
-
+                is_interaction=False,
+            )
+        )
 
         data = torch.zeros(
             prev_interaction_end_human_pose.shape[0],
@@ -1267,8 +1273,6 @@ class Trainer(object):
             human_jnts_pos_list.append(mesh_jnts[0])
             human_jnts_local_rot_aa_list.append(curr_local_rot_aa_rep[:, :22])
 
-
-
             if finger_all_res_list is not None:
                 finger_jnts_local_rot_aa_list.append(pred_finger_aa_rep[idx])
 
@@ -1362,7 +1366,11 @@ class Trainer(object):
                 "human_root_pos": human_root_pos_list[-1],
                 "human_jnts_pos": human_jnts_pos_list[-1],
                 "human_jnts_local_rot_aa": human_jnts_local_rot_aa_list[-1],
-                "finger_jnts_local_rot_aa": finger_jnts_local_rot_aa_list[-1] if finger_all_res_list is not None else None,
+                "finger_jnts_local_rot_aa": (
+                    finger_jnts_local_rot_aa_list[-1]
+                    if finger_all_res_list is not None
+                    else None
+                ),
             }
             results_path = os.path.join(mesh_save_folder, "navigation_results.pkl")
             with open(results_path, "wb") as f:
@@ -1388,11 +1396,11 @@ def calculate_navi_representation_dim(opt):
     repr_dim = 24 * 3 + 22 * 6
 
     # Feet floor contact label
-    if True: # opt.add_feet_contact:
+    if True:  # opt.add_feet_contact:
         repr_dim += 4
 
     # Human root orientation in XY plane
-    if True: # opt.add_root_xy_ori:
+    if True:  # opt.add_root_xy_ori:
         repr_dim += 6
 
     return repr_dim
