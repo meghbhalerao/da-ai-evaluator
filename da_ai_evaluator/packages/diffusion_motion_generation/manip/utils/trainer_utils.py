@@ -1347,7 +1347,7 @@ def load_planned_path_as_waypoints(
     load_for_nav=False,
     start_waypoint=None,
 ):
-    # Assunme a human's walking speed is 1.1m/s~1.7m/s.
+    # Assume a human's walking speed is 1.1m/s~1.7m/s.
     # 30 frames (1 second) --- moving distance should be in range [1.1m, 1.7m]
     # In the first 30 frame, usually interact with object, so moving distance could be < 0.5m.
     # In the last 30 frame, usually release the object, so moving distance could be < 0.5m.
@@ -1410,7 +1410,7 @@ def load_planned_path_as_waypoints(
         return cano_planned_data
 
 
-def generate_T_pose(
+def generate_T_pose(opt,
     rest_human_offsets: torch.Tensor,
     planned_obj_path: torch.Tensor,
 ) -> torch.Tensor:
@@ -1428,7 +1428,7 @@ def generate_T_pose(
     curr_seq_local_jpos = rest_human_offsets  # 1 X 24 X 3
     curr_seq_local_jpos[0, 0, :2] = planned_obj_path[0, :2]
     curr_seq_local_jpos[0, 0, 2] = 0.905
-    local_joint_rot_mat = pickle.load(open("local_joint_rot_mat.pkl", "rb"))[
+    local_joint_rot_mat = pickle.load(open(os.path.join(opt.data_root_folder, "local_joint_rot_mat.pkl"), "rb"))[
         0:1
     ]  # 1 X 22 X 3 X 3
     global_quat, global_pos = quat_fk_torch(

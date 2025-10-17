@@ -1,0 +1,1 @@
+python main.py algorithm.load_pretrained_policy=false algorithm.data_root_folder=/home/mb230/projects/hoifhli_release/data/processed_data algorithm=diff_trans group_size=15 algorithm.phase=sample algorithm.use_long_planned_path=true algorithm.add_interaction_root_xy_ori=true algorithm.add_interaction_feet_contact=true algorithm.use_guidance_in_denoising=true

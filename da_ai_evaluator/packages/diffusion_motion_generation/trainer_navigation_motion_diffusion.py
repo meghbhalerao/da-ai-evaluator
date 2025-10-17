@@ -18,7 +18,7 @@ from torch.cuda.amp import GradScaler, autocast
 from torch.optim import Adam
 from torch.utils import data
 
-from argument_parser import parse_opt
+from da_ai_evaluator.packages.diffusion_motion_generation.deprecated_code.deprecated_argument_parser import parse_opt
 from packages.diffusion_motion_generation.manip.data.humanml3d_dataset import (
     HumanML3DDataset,
     quat_ik_torch,
@@ -127,12 +127,14 @@ class Trainer(object):
 
     def prep_dataloader(self, window_size):
         # Define dataset
+
         train_dataset = HumanML3DDataset(
             train=True,
             data_root_folder=self.data_root_folder,
             window=window_size,
             load_ds=self.load_ds,
         )
+
         val_dataset = HumanML3DDataset(
             train=False,
             data_root_folder=self.data_root_folder,
@@ -174,6 +176,7 @@ class Trainer(object):
         )
 
     def load(self, milestone):
+
         data = torch.load(
             os.path.join(self.results_folder, "model-" + str(milestone) + ".pt")
         )

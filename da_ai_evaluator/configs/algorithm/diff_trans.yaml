@@ -171,3 +171,6 @@ finger_use_omomo: true
 finger_train_both_sensor: true
 finger_proximity_sensor_condition: true
 finger_ref_pose_condition: true
+
+
+# custom specifications for navigation, in some frame of

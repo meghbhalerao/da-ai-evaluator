@@ -20,15 +20,14 @@ import pytorch3d.transforms as transforms
 import torch
 from tqdm import tqdm
 
-from grasp_generation.utils.energy import cal_energy
-from grasp_generation.utils.hand_model import HandModel
-from grasp_generation.utils.initializations import (
-    initialize_convex_hull,
-)
-from grasp_generation.utils.logger import Logger
-from grasp_generation.utils.object_model import ObjectModel
-from grasp_generation.utils.optimizer import Annealing
-from grasp_generation.utils.save import save_hand_meshes
+from packages.diffusion_motion_generation.grasp_generation.utils.energy import cal_energy
+from packages.diffusion_motion_generation.grasp_generation.utils.hand_model import HandModel
+from packages.diffusion_motion_generation.grasp_generation.utils.initializations import (initialize_convex_hull)
+
+from packages.diffusion_motion_generation.grasp_generation.utils.logger import Logger
+from packages.diffusion_motion_generation.grasp_generation.utils.object_model import ObjectModel
+from packages.diffusion_motion_generation.grasp_generation.utils.optimizer import Annealing
+from packages.diffusion_motion_generation.grasp_generation.utils.save import save_hand_meshes
 
 
 def run_grasp(
@@ -66,6 +65,7 @@ def run_grasp(
     in_parallel: bool = False,
     return_multiple_grasp: bool = False,
 ):
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("running on", device)
 

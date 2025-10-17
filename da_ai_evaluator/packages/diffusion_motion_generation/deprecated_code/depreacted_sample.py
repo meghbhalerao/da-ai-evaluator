@@ -15,7 +15,7 @@ from moviepy import VideoFileClip, concatenate_videoclips
 from scipy.signal import medfilt
 from tqdm import tqdm
 
-from argument_parser import parse_opt
+from da_ai_evaluator.packages.diffusion_motion_generation.deprecated_code.deprecated_argument_parser import parse_opt
 from grasp_generation.gen_grasp import run_grasp
 from packages.diffusion_motion_generation.manip.data.humanml3d_dataset import normalize, quat_between
 from packages.diffusion_motion_generation.manip.inertialize.inert import apply_inertialize, apply_linear_offset
@@ -279,8 +279,7 @@ def build_coarse_interaction_trainer(
 
     vis_wdir = "./results/interaction/{}".format(opt.vis_wdir)
     interaction_wdir = os.path.join(opt.project, opt.cnet_save_dir, "weights")
-    print(interaction_wdir)
-    sys.exit()
+
     interaction_trainer = build_interaction_trainer(
         opt=opt,
         device=device,

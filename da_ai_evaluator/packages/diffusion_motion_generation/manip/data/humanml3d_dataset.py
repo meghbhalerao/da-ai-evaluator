@@ -71,13 +71,11 @@ def rotate(points, R):
     return r_points.reshape(shape)
 
 
-def get_smpl_parents(use_joints24=True):
+def get_smpl_parents(use_joints24=True, data_root_folder = None):
+    assert data_root_folder is not None
     # Define paths for saved parent data
-    data_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        "data",
-        "smpl_all_models/",
-    )
+    data_dir = os.path.join(data_root_folder, "..", "smpl_all_models/")
+
     parents_22_path = os.path.join(data_dir, "smpl_parents_22.npy")
     parents_24_path = os.path.join(data_dir, "smpl_parents_24.npy")
 
@@ -179,66 +177,56 @@ class HumanML3DDataset(Dataset):
         data_root_folder,
         window=120,
         load_ds=True,
-    ):
+    ):  
         self.load_ds = load_ds
         self.train = train
 
         self.window = window
 
-        self.parents = get_smpl_parents()  # 24/22
+        self.parents = get_smpl_parents(data_root_folder=data_root_folder)  # 24/22
 
-        self.data_root_folder = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../data/HumanML3D/processed_data/",
-        )
+        self.data_root_folder = data_root_folder
 
         keep_same_len_window = False
         self.keep_same_len_window = keep_same_len_window
 
         if self.load_ds:
-            train_json_path = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                "../../data/HumanML3D/humanml3d_train_seq_names.json",
-            )
-            test_json_path = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                "../../data/HumanML3D/humanml3d_test_seq_names.json",
-            )
+            train_json_path = os.path.join(self.data_root_folder, "../", "HumanML3D/humanml3d_train_seq_names.json")
+
+            test_json_path = os.path.join(self.data_root_folder, "../", "HumanML3D/humanml3d_test_seq_names.json")
 
             if self.train:
                 seq_names = json.load(open(train_json_path, "r"))["k_idx"]
             else:
                 seq_names = json.load(open(test_json_path, "r"))["k_idx"]
 
-            amass_npz_folder = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                "../../data/amass_smplx_humanml3d_processed",
-            )
+            amass_npz_folder = os.path.join(self.data_root_folder, "amass_smplx_humanml3d_processed")
+
 
         if keep_same_len_window:
             if self.train:
                 seq_data_path = os.path.join(
-                    self.data_root_folder, "train_diffusion_humanml3d_seq_joints24.p"
+                    self.data_root_folder, "..", 'HumanML3D/processed_data', "train_diffusion_humanml3d_seq_joints24.p"
                 )
                 processed_data_path = os.path.join(
-                    self.data_root_folder,
+                    self.data_root_folder, "..", 'HumanML3D/processed_data',
                     "cano_train_diffusion_humanml3d_window_"
                     + str(self.window)
                     + "_joints24_same_len_window.p",
                 )
             else:
                 seq_data_path = os.path.join(
-                    self.data_root_folder, "test_diffusion_humanml3d_seq_joints24.p"
+                    self.data_root_folder, "..", 'HumanML3D/processed_data', "test_diffusion_humanml3d_seq_joints24.p"
                 )
                 processed_data_path = os.path.join(
-                    self.data_root_folder,
+                    self.data_root_folder, "..", 'HumanML3D/processed_data',
                     "cano_test_diffusion_humanml3d_window_"
                     + str(self.window)
                     + "_joints24_same_len_window.p",
                 )
 
             min_max_mean_std_data_path = os.path.join(
-                self.data_root_folder,
+                self.data_root_folder, "..", 'HumanML3D/processed_data',
                 "cano_humanml3d_min_max_mean_std_data_window_"
                 + str(self.window)
                 + "_joints24_same_len_window.p",
@@ -246,39 +234,42 @@ class HumanML3DDataset(Dataset):
         else:
             if self.train:
                 seq_data_path = os.path.join(
-                    self.data_root_folder, "train_diffusion_humanml3d_seq_joints24.p"
+                    self.data_root_folder, "..", 'HumanML3D/processed_data', "train_diffusion_humanml3d_seq_joints24.p"
                 )
+
                 processed_data_path = os.path.join(
-                    self.data_root_folder,
+                    self.data_root_folder, "..", 'HumanML3D/processed_data',
                     "cano_train_diffusion_humanml3d_window_"
                     + str(self.window)
                     + "_joints24.p",
                 )
+
                 root_traj_xy_ori_path = os.path.join(
-                    self.data_root_folder,
+                    self.data_root_folder, "..", 'HumanML3D/processed_data',
                     "train_diffusion_humanml3d_root_traj_xy_ori_joints24.p",
                 )
             else:
                 seq_data_path = os.path.join(
-                    self.data_root_folder, "test_diffusion_humanml3d_seq_joints24.p"
+                    self.data_root_folder, "..", 'HumanML3D/processed_data', "test_diffusion_humanml3d_seq_joints24.p"
                 )
                 processed_data_path = os.path.join(
-                    self.data_root_folder,
+                    self.data_root_folder, "..", 'HumanML3D/processed_data',
                     "cano_test_diffusion_humanml3d_window_"
                     + str(self.window)
                     + "_joints24.p",
                 )
                 root_traj_xy_ori_path = os.path.join(
-                    self.data_root_folder,
+                    self.data_root_folder, "..", 'HumanML3D/processed_data',
                     "test_diffusion_humanml3d_root_traj_xy_ori_joints24.p",
                 )
 
             min_max_mean_std_data_path = os.path.join(
-                self.data_root_folder,
-                "cano_humanml3d_min_max_mean_std_data_window_"
+                self.data_root_folder, "..", 'HumanML3D/processed_data'
+                ,"cano_humanml3d_min_max_mean_std_data_window_"
                 + str(self.window)
                 + "_joints24.p",
             )
+
 
         if self.load_ds:
             if os.path.exists(processed_data_path):
@@ -333,11 +324,10 @@ class HumanML3DDataset(Dataset):
                 )
             )
 
-        # Prepare SMPLX model
+        # Prepare SMPLX model        
         soma_work_base_dir = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../data/smpl_all_models/",
-        )
+            self.data_root_folder, '..', 'smpl_all_models')
+        
         support_base_dir = soma_work_base_dir
         surface_model_type = "smplx"
         surface_model_male_fname = os.path.join(
@@ -598,6 +588,7 @@ class HumanML3DDataset(Dataset):
     def extract_min_max_mean_std_from_data(self):
         all_global_jpos_data = []
         all_global_jvel_data = []
+
 
         for s_idx in self.window_data_dict:
             curr_window_data = self.window_data_dict[s_idx]["motion"]  # T X D

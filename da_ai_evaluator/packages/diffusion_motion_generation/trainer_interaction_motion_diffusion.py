@@ -1149,8 +1149,8 @@ class Trainer(object):
     def cond_sample_res(
         self,
         milestone: str = "10",
-        render_results: bool = False,
-    ):
+        render_results: bool = False,):
+        
         # Load the model.
         print(f"Loaded weight: {milestone}")
         self.load(milestone)
@@ -3758,6 +3758,7 @@ def build_interaction_trainer(
         use_object_keypoints=True,
         use_feet_contact=use_feet_contact,
     )
+    
     interaction_model.to(device)
 
     interaction_trainer = Trainer(
@@ -3774,6 +3775,7 @@ def build_interaction_trainer(
         use_wandb=use_wandb,
         load_ds=load_ds,
     )
+    
     return interaction_trainer
 
 
@@ -4084,7 +4086,6 @@ def run_train(opt, device):
     )
 
     trainer.train()
-
     torch.cuda.empty_cache()
 
 
@@ -4155,183 +4156,174 @@ def run_validation(opt, device):
     torch.cuda.empty_cache()
 
 
-def parse_opt():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--project", default="runs/train", help="project/name")
-    parser.add_argument("--wandb_pj_name", type=str, default="", help="project name")
-    parser.add_argument("--entity", default="zhenkirito123", help="W&B entity")
-    parser.add_argument("--exp_name", default="", help="save to project/name")
-    parser.add_argument("--device", default="0", help="cuda device")
-
-    parser.add_argument("--window", type=int, default=120, help="horizon")
-
-    parser.add_argument("--batch_size", type=int, default=32, help="batch size")
-    parser.add_argument(
-        "--learning_rate", type=float, default=2e-4, help="generator_learning_rate"
-    )
-
-    parser.add_argument("--checkpoint", type=str, default="", help="checkpoint")
-
-    parser.add_argument("--data_root_folder", type=str, default="", help="checkpoint")
-
-    parser.add_argument(
-        "--n_dec_layers", type=int, default=4, help="the number of decoder layers"
-    )
-    parser.add_argument(
-        "--n_head", type=int, default=4, help="the number of heads in self-attention"
-    )
-    parser.add_argument(
-        "--d_k", type=int, default=256, help="the dimension of keys in transformer"
-    )
-    parser.add_argument(
-        "--d_v", type=int, default=256, help="the dimension of values in transformer"
-    )
-    parser.add_argument(
-        "--d_model",
-        type=int,
-        default=512,
-        help="the dimension of intermediate representation in transformer",
-    )
-
-    # For testing sampled results
-    parser.add_argument("--test_sample_res", action="store_true")
-
-    # For testing sampled results
-    parser.add_argument("--test_long_seq", action="store_true")
-
-    # For testing sampled results w planned path
-    parser.add_argument("--use_planned_path", action="store_true")
-
-    # For testing sampled results w planned path
-    parser.add_argument("--use_long_planned_path", action="store_true")
-
-    # For loss type
-    parser.add_argument("--use_l2_loss", action="store_true")
-
-    # Train and test on different objects.
-    parser.add_argument("--use_object_split", action="store_true")
-
-    # For adding start and end object position (xyz) and rotation (6D rotation).
-    parser.add_argument("--add_start_end_object_pos_rot", action="store_true")
-
-    # For adding start and end object position (xyz).
-    parser.add_argument("--add_start_end_object_pos", action="store_true")
-
-    # For adding start and end object position at z plane (xy).
-    parser.add_argument("--add_start_end_object_pos_xy", action="store_true")
-
-    # For adding waypoints (xy).
-    parser.add_argument("--add_waypoints_xy", action="store_true")
-
-    # Random sample waypoints instead of fixed intervals.
-    parser.add_argument("--use_random_waypoints", action="store_true")
-
-    # Add language conditions.
-    parser.add_argument("--add_contact_label", action="store_true")
-
-    # Input the first human pose, maybe can connect the windows better.
-    parser.add_argument("--remove_target_z", action="store_true")
-
-    # Input the first human pose, maybe can connect the windows better.
-    parser.add_argument("--use_guidance_in_denoising", action="store_true")
-
-    parser.add_argument("--use_optimization_in_denoising", action="store_true")
-
-    # Add rest offsets for body shape information.
-    parser.add_argument("--add_rest_human_skeleton", action="store_true")
-
-    # Add rest offsets for body shape information.
-    parser.add_argument("--use_first_frame_bps", action="store_true")
-
-    # Visualize the results from different noise levels.
-    parser.add_argument("--return_diff_level_res", action="store_true")
-
-    parser.add_argument("--input_full_human_pose", action="store_true")
-
-    parser.add_argument(
-        "--loss_w_feet",
-        type=float,
-        default=1,
-        help="the loss weight for feet contact loss",
-    )
-
-    parser.add_argument(
-        "--loss_w_fk", type=float, default=1, help="the loss weight for fk loss"
-    )
-
-    parser.add_argument(
-        "--loss_w_obj_pts",
-        type=float,
-        default=1,
-        help="the loss weight for object sampling points",
-    )
-
-    parser.add_argument(
-        "--loss_w_obj_pts_in_hand",
-        type=float,
-        default=0.5,
-        help="the loss weight for object sampling points in wrist frame",
-    )
-
-    parser.add_argument(
-        "--loss_w_obj_vel",
-        type=float,
-        default=1,
-        help="the loss weight for object velocity",
-    )
-
-    # Add extra loss.
-    parser.add_argument(
-        "--add_object_in_wrist_loss",
-        action="store_true",
-        help="Add object-hand relative loss.",
-    )
-
-    parser.add_argument(
-        "--add_object_vel_loss", action="store_true", help="Add object velocity loss."
-    )
-
-    # Add extra conditions.
-    parser.add_argument(
-        "--add_wrist_relative",
-        action="store_true",
-        help="Add wrist relative pose as condition.",
-    )
-
-    parser.add_argument(
-        "--add_object_static",
-        action="store_true",
-        help="Add object static pose as condition.",
-    )
-
-    parser.add_argument(
-        "--add_interaction_root_xy_ori",
-        action="store_true",
-        help="Add root xy orientation as condition.",
-    )
-
-    parser.add_argument(
-        "--add_interaction_feet_contact",
-        action="store_true",
-        help="Add feet contact as condition.",
-    )
-
-    parser.add_argument(
-        "--milestone",
-        type=str,
-        default="10",
-    )
-
-    opt = parser.parse_args()
-    return opt
 
 
-if __name__ == "__main__":
-    opt = parse_opt()
-    opt.save_dir = os.path.join(opt.project, opt.exp_name)
-    opt.exp_name = opt.save_dir.split("/")[-1]
-    device = torch.device(f"cuda:{opt.device}" if torch.cuda.is_available() else "cpu")
-    if opt.test_sample_res:
-        run_sample(opt, device)
-    else:
-        run_train(opt, device)
+# def parse_opt():
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--project", default="runs/train", help="project/name")
+#     parser.add_argument("--wandb_pj_name", type=str, default="", help="project name")
+#     parser.add_argument("--entity", default="zhenkirito123", help="W&B entity")
+#     parser.add_argument("--exp_name", default="", help="save to project/name")
+#     parser.add_argument("--device", default="0", help="cuda device")
+
+#     parser.add_argument("--window", type=int, default=120, help="horizon")
+
+#     parser.add_argument("--batch_size", type=int, default=32, help="batch size")
+#     parser.add_argument(
+#         "--learning_rate", type=float, default=2e-4, help="generator_learning_rate"
+#     )
+
+#     parser.add_argument("--checkpoint", type=str, default="", help="checkpoint")
+
+#     parser.add_argument("--data_root_folder", type=str, default="", help="checkpoint")
+
+#     parser.add_argument(
+#         "--n_dec_layers", type=int, default=4, help="the number of decoder layers"
+#     )
+#     parser.add_argument(
+#         "--n_head", type=int, default=4, help="the number of heads in self-attention"
+#     )
+#     parser.add_argument(
+#         "--d_k", type=int, default=256, help="the dimension of keys in transformer"
+#     )
+#     parser.add_argument(
+#         "--d_v", type=int, default=256, help="the dimension of values in transformer"
+#     )
+#     parser.add_argument(
+#         "--d_model",
+#         type=int,
+#         default=512,
+#         help="the dimension of intermediate representation in transformer",
+#     )
+
+#     # For testing sampled results
+#     parser.add_argument("--test_sample_res", action="store_true")
+
+#     # For testing sampled results
+#     parser.add_argument("--test_long_seq", action="store_true")
+
+#     # For testing sampled results w planned path
+#     parser.add_argument("--use_planned_path", action="store_true")
+
+#     # For testing sampled results w planned path
+#     parser.add_argument("--use_long_planned_path", action="store_true")
+
+#     # For loss type
+#     parser.add_argument("--use_l2_loss", action="store_true")
+
+#     # Train and test on different objects.
+#     parser.add_argument("--use_object_split", action="store_true")
+
+#     # For adding start and end object position (xyz) and rotation (6D rotation).
+#     parser.add_argument("--add_start_end_object_pos_rot", action="store_true")
+
+#     # For adding start and end object position (xyz).
+#     parser.add_argument("--add_start_end_object_pos", action="store_true")
+
+#     # For adding start and end object position at z plane (xy).
+#     parser.add_argument("--add_start_end_object_pos_xy", action="store_true")
+
+#     # For adding waypoints (xy).
+#     parser.add_argument("--add_waypoints_xy", action="store_true")
+
+#     # Random sample waypoints instead of fixed intervals.
+#     parser.add_argument("--use_random_waypoints", action="store_true")
+
+#     # Add language conditions.
+#     parser.add_argument("--add_contact_label", action="store_true")
+
+#     # Input the first human pose, maybe can connect the windows better.
+#     parser.add_argument("--remove_target_z", action="store_true")
+
+#     # Input the first human pose, maybe can connect the windows better.
+#     parser.add_argument("--use_guidance_in_denoising", action="store_true")
+
+#     parser.add_argument("--use_optimization_in_denoising", action="store_true")
+
+#     # Add rest offsets for body shape information.
+#     parser.add_argument("--add_rest_human_skeleton", action="store_true")
+
+#     # Add rest offsets for body shape information.
+#     parser.add_argument("--use_first_frame_bps", action="store_true")
+
+#     # Visualize the results from different noise levels.
+#     parser.add_argument("--return_diff_level_res", action="store_true")
+
+#     parser.add_argument("--input_full_human_pose", action="store_true")
+
+#     parser.add_argument(
+#         "--loss_w_feet",
+#         type=float,
+#         default=1,
+#         help="the loss weight for feet contact loss",
+#     )
+
+#     parser.add_argument(
+#         "--loss_w_fk", type=float, default=1, help="the loss weight for fk loss"
+#     )
+
+#     parser.add_argument(
+#         "--loss_w_obj_pts",
+#         type=float,
+#         default=1,
+#         help="the loss weight for object sampling points",
+#     )
+
+#     parser.add_argument(
+#         "--loss_w_obj_pts_in_hand",
+#         type=float,
+#         default=0.5,
+#         help="the loss weight for object sampling points in wrist frame",
+#     )
+
+#     parser.add_argument(
+#         "--loss_w_obj_vel",
+#         type=float,
+#         default=1,
+#         help="the loss weight for object velocity",
+#     )
+
+#     # Add extra loss.
+#     parser.add_argument(
+#         "--add_object_in_wrist_loss",
+#         action="store_true",
+#         help="Add object-hand relative loss.",
+#     )
+
+#     parser.add_argument(
+#         "--add_object_vel_loss", action="store_true", help="Add object velocity loss."
+#     )
+
+#     # Add extra conditions.
+#     parser.add_argument(
+#         "--add_wrist_relative",
+#         action="store_true",
+#         help="Add wrist relative pose as condition.",
+#     )
+
+#     parser.add_argument(
+#         "--add_object_static",
+#         action="store_true",
+#         help="Add object static pose as condition.",
+#     )
+
+#     parser.add_argument(
+#         "--add_interaction_root_xy_ori",
+#         action="store_true",
+#         help="Add root xy orientation as condition.",
+#     )
+
+#     parser.add_argument(
+#         "--add_interaction_feet_contact",
+#         action="store_true",
+#         help="Add feet contact as condition.",
+#     )
+
+#     parser.add_argument(
+#         "--milestone",
+#         type=str,
+#         default="10",
+#     )
+
+#     opt = parser.parse_args()
+#     return opt

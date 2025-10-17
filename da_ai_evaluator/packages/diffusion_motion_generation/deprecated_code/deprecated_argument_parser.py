@@ -1,3 +1,8 @@
+'''
+deprecated: this file has been deprecated in favor of the more modern hydra config management
+'''
+
+
 import argparse
 
 
@@ -181,18 +186,21 @@ def parse_opt():
         default="./experiments",
         help="output folder for weights and visualizations",
     )
+
     parser.add_argument(
         "--finger_wandb_pj_name",
         type=str,
         default="omomo_only_finger",
         help="wandb_proj_name",
     )
+
     parser.add_argument("--finger_entity", default="", help="W&B entity")
     parser.add_argument(
         "--finger_exp_name",
         default="fnet_release",
         help="save to project/name",
     )
+    
     parser.add_argument("--finger_device", default="0", help="cuda device")
 
     parser.add_argument("--finger_window", type=int, default=30, help="horizon")
