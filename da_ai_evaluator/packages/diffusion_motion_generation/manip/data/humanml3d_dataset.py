@@ -108,9 +108,9 @@ def local2global_pose(local_pose):
     return global_pose  # T X J X 3 X 3
 
 
-def quat_ik_torch(grot_mat):
+def quat_ik_torch(grot_mat, data_root_folder = None):
     # grot: T X J X 3 X 3
-    parents = get_smpl_parents(use_joints24=False)
+    parents = get_smpl_parents(use_joints24=False, data_root_folder=data_root_folder)
 
     grot = transforms.matrix_to_quaternion(grot_mat)  # T X J X 4
 
@@ -130,13 +130,13 @@ def quat_ik_torch(grot_mat):
     return res_mat
 
 
-def quat_fk_torch(lrot_mat, lpos=None, use_joints24=True):
+def quat_fk_torch(lrot_mat, lpos=None, use_joints24=True, data_root_folder = None):
     # lrot: N X J X 3 X 3 (local rotation with reprect to its parent joint)
     # lpos: N X J/(J+2) X 3 (root joint is in global space, the other joints are offsets relative to its parent in rest pose)
     if use_joints24:
-        parents = get_smpl_parents(use_joints24=True)
+        parents = get_smpl_parents(use_joints24=True, data_root_folder=data_root_folder)
     else:
-        parents = get_smpl_parents()
+        parents = get_smpl_parents(data_root_folder=data_root_folder)
 
     lrot = transforms.matrix_to_quaternion(lrot_mat)
 

@@ -117,6 +117,7 @@ class MeshViewer(object):
                  bg_color = [0.0, 0.0, 0.0, 1.0],
                  offscreen = False,
                  registered_keys=None):
+        
         super(MeshViewer, self).__init__()
 
         if registered_keys is None:
@@ -124,9 +125,7 @@ class MeshViewer(object):
 
         self.bg_color = bg_color
         self.offscreen = offscreen
-        self.scene = pyrender.Scene(bg_color=bg_color,
-                                    ambient_light=(0.3, 0.3, 0.3),
-                                    name = 'scene')
+        self.scene = pyrender.Scene(bg_color=bg_color, ambient_light=(0.3, 0.3, 0.3), name = 'scene')
 
         self.aspect_ratio = float(width) / height
         pc = pyrender.PerspectiveCamera(yfov=np.pi / 3.0, aspectRatio=self.aspect_ratio)
@@ -144,12 +143,7 @@ class MeshViewer(object):
             self.scene.add_node(light)
             self.viewer = pyrender.OffscreenRenderer(width, height)
         else:
-            self.viewer = pyrender.Viewer(self.scene,
-                                          use_raymond_lighting=True,
-                                          viewport_size=(width, height),
-                                          cull_faces=False,
-                                          run_in_thread=True,
-                                          registered_keys=registered_keys)
+            self.viewer = pyrender.Viewer(self.scene, use_raymond_lighting=True, viewport_size=(width, height), cull_faces=False, run_in_thread=True,  registered_keys=registered_keys)
 
         for i, node in enumerate(self.scene.get_nodes()):
             if node.name is None:
@@ -202,8 +196,7 @@ class MeshViewer(object):
             nodes.append(
                 pyrender.Node(
                     light=pyrender.DirectionalLight(color=np.ones(3),
-                                                    intensity=1.0),
-                    matrix=matrix
+                                                    intensity=1.0),matrix=matrix
                 ))
 
         return nodes

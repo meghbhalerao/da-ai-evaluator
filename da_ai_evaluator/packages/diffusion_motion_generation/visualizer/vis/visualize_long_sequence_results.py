@@ -28,10 +28,10 @@ os.environ["PYOPENGL_PLATFORM"] = "egl"
 
 import trimesh
 
-from visualizer.tools.cfg_parser import Config
-from visualizer.tools.meshviewer import Mesh, MeshViewer, colors, points2sphere
-from visualizer.tools.objectmodel import ObjectModel
-from visualizer.tools.utils import euler, params2torch, parse_npz, to_cpu
+from packages.diffusion_motion_generation.visualizer.tools.cfg_parser import Config
+from packages.diffusion_motion_generation.visualizer.tools.meshviewer import Mesh, MeshViewer, colors, points2sphere
+from packages.diffusion_motion_generation.visualizer.tools.objectmodel import ObjectModel
+from packages.diffusion_motion_generation.visualizer.tools.utils import euler, params2torch, parse_npz, to_cpu
 
 USE_FLAT_HAND_MEAN = True
 
@@ -44,7 +44,7 @@ def visualize_sequences(cfg):
     mv = MeshViewer(offscreen=cfg.offscreen)
 
     # set the camera pose
-    camera_pose = np.eye(4)
+    camera_pose = 0.33 * np.eye(4)
     camera_pose[:3, :3] = euler([80, -15, 0], "xzx")
     camera_pose[:3, 3] = np.array([-0.5, -3.0, 1.5])
     mv.update_camera_pose(camera_pose)
@@ -212,16 +212,15 @@ def vis_sequence(cfg, result_path_all, mv, interaction_epoch, s_idx, video_idx):
 
                 # meshes.extend(sub_b_meshes)
                 meshes.extend(initial_obj_meshes)
-
                 mv.set_static_meshes(meshes)
-
-                camera_pose = np.eye(4)
+                camera_pose =  np.eye(4)
                 camera_pose[:3, :3] = euler([80, -15, 0], "xzx")
-                camera_pose[:2, 3] = np.mean(s_mesh.vertices, axis=0)[:2] + np.array(
-                    [0, -2.0]
-                )
-                camera_pose[2, 3] = 1.3
-                mv.update_camera_pose(camera_pose)
+                if not cfg.fixed_camera_pose:
+                    camera_pose[:2, 3] = np.mean(s_mesh.vertices, axis=0)[:2] + np.array(
+                        [0, -2.0]
+                    )
+                    camera_pose[2, 3] = 1.3
+                    mv.update_camera_pose(camera_pose)
 
                 mv.save_snapshot(os.path.join(img_path, "%05d.png" % frame))
                 img_paths.append(os.path.join(img_path, "%05d.png" % frame))
@@ -258,6 +257,8 @@ if __name__ == "__main__":
     parser.add_argument("--video-idx", required=True, type=str)
     parser.add_argument("--interaction-epoch", required=True, type=int)
     parser.add_argument("--use_guidance", required=True, type=str)
+    parser.add_argument("--fixed_camera_pose", action="store_true", required=True)  
+
 
     parser.add_argument(
         "--model-path",
@@ -286,6 +287,8 @@ if __name__ == "__main__":
         "interaction_epoch": args.interaction_epoch,
         "use_guidance": args.use_guidance,
         "save_dir_name": args.save_dir_name,
+        "fixed_camera_pose": args.fixed_camera_pose
+
     }
 
     cfg = Config(**cfg)

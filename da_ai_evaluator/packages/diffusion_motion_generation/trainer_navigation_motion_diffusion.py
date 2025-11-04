@@ -102,7 +102,8 @@ class Trainer(object):
 
         self.window = opt.window
 
-        self.add_language_condition_for_nav = True
+        self.add_language_condition_for_nav = opt.add_language_condition_for_nav
+
         if self.add_language_condition_for_nav:
             clip_version = "ViT-B/32"
             self.clip_model = self.load_and_freeze_clip(clip_version)
@@ -144,6 +145,7 @@ class Trainer(object):
 
         self.ds = train_dataset
         self.val_ds = val_dataset
+        
         if self.load_ds:
             self.dl = cycle(
                 data.DataLoader(
@@ -176,11 +178,7 @@ class Trainer(object):
         )
 
     def load(self, milestone):
-
-        data = torch.load(
-            os.path.join(self.results_folder, "model-" + str(milestone) + ".pt")
-        )
-
+        data = torch.load(os.path.join(self.results_folder, "model-" + str(milestone) + ".pt"))
         self.step = data["step"]
         self.model.load_state_dict(data["model"], strict=False)
         self.ema.load_state_dict(data["ema"], strict=False)
@@ -646,10 +644,7 @@ class Trainer(object):
             guidance_fn = None
 
             if self.add_language_condition_for_nav:
-                text_anno_data = val_data_dict[
-                    "text"
-                ]  # 'a man walks forward then turns right after a short pause'
-                print(s_idx, val_data_dict["text"])
+                text_anno_data = val_data_dict["text"]  # 'a man walks forward then turns right after a short pause'
                 language_input = self.encode_text(text_anno_data)  # BS X 512
                 language_input = language_input.to(val_human_data.device)
             else:
@@ -943,7 +938,7 @@ class Trainer(object):
         idx = 0
 
         curr_global_rot_mat = global_rot_mat[idx]  # T X 22 X 3 X 3
-        curr_local_rot_mat = quat_ik_torch(curr_global_rot_mat)  # T X 22 X 3 X 3
+        curr_local_rot_mat = quat_ik_torch(curr_global_rot_mat, data_root_folder=self.data_root_folder)  # T X 22 X 3 X 3
         curr_local_rot_aa_rep = transforms.matrix_to_axis_angle(
             curr_local_rot_mat
         )  # T X 22 X 3
@@ -992,24 +987,24 @@ class Trainer(object):
         # In navigation model, planned_obj_path is for human root translation xy.
         # prev_interaction_end_human_pose: BS(1) X 1 X D(24*3+24*6), in the coordinate frame that makes the first interaction seqq's first human pose in canonical direction
 
-        start_human_root_pos = prev_interaction_end_human_pose[
-            :, 0:1, :3
-        ]  # BS X 1 X 3, z shouldn't be used!
-
+        start_human_root_pos = prev_interaction_end_human_pose[:, 0:1, :3]  # BS X 1 X 3, z shouldn't be used!
+        
         seq_human_root_pos = torch.zeros(
-            start_human_root_pos.shape[0], (planned_obj_path.shape[0] - 1) * 30, 3
+            start_human_root_pos.shape[0], (planned_obj_path.shape[0] - 1) * self.opt.fps, 3
         ).cuda()
+
         seq_human_root_pos[:, 0:1, :] = start_human_root_pos.clone()  # unnormalized
 
         if self.add_waypoints_xy:  # Need to consider overlapped frames.
             planned_start_point = planned_obj_path[0:1, :2]  # 1 X 2
             real_start_point = start_human_root_pos[0, 0, :2]  # 1 X 2
+
             if (
                 torch.norm(planned_start_point.cuda() - real_start_point.cuda()) > 0.1
             ):  # will not happen, will set real_start_point to be planned_start_point.
 
                 seq_human_root_pos = torch.zeros(
-                    start_human_root_pos.shape[0], (planned_obj_path.shape[0]) * 30, 3
+                    start_human_root_pos.shape[0], (planned_obj_path.shape[0]) * self.opt.fps, 3
                 ).cuda()
 
                 seq_human_root_pos[:, 0:1, :] = (
@@ -1023,17 +1018,17 @@ class Trainer(object):
                     :, 1:, :
                 ].cuda()  # BS X (K-1) X 3
 
-            num_pts = waypoints_com_pos.shape[1]
 
-            window_cnt = 0
-            for tmp_p_idx in range(num_pts):
-                t_idx = (tmp_p_idx + 1) * 30 - 1
+            window_cnt = waypoints_com_pos.shape[1]
+
+            for tmp_p_idx in range(window_cnt):
+                t_idx = (tmp_p_idx + 1) * self.opt.fps - 1
                 seq_human_root_pos[:, t_idx, :2] = waypoints_com_pos[:, tmp_p_idx, :2]
 
-                window_cnt += 1
-
         actual_num_frames = window_cnt * self.window
-        seq_human_root_pos = seq_human_root_pos[:, :actual_num_frames]
+
+        # the below line seems a little problematic to me - CRITICAL TODO CHECK IF BELOW MAKES SENSE
+        # seq_human_root_pos = seq_human_root_pos[:, :actual_num_frames]
 
         if self.add_language_condition_for_nav:
             text_clip_feats_list = self.gen_language_for_long_seq(
@@ -1042,13 +1037,16 @@ class Trainer(object):
 
         # Generate padding mask
         actual_seq_len = torch.ones(1, self.window + 1) * self.window + 1
+
         tmp_mask = (
             torch.arange(self.window + 1).expand(1, self.window + 1) < actual_seq_len
         )  # BS X max_timesteps
-        padding_mask = tmp_mask[:, None, :].cuda()  # 1 X 1 X 121
 
+        padding_mask = tmp_mask[:, None, :].cuda()  # 1 X 1 X 121
+        
         bs_window_len = torch.zeros(prev_interaction_end_human_pose.shape[0])
         bs_window_len[:] = self.window
+
         if self.add_waypoints_xy:
             cond_mask = self.prep_mimic_A_star_path_condition_mask_pos_xy_only(
                 torch.zeros(
@@ -1058,6 +1056,7 @@ class Trainer(object):
                 ).to(prev_interaction_end_human_pose.device),
                 bs_window_len,
             )
+
         else:
             cond_mask = None
 
@@ -1072,6 +1071,7 @@ class Trainer(object):
             language_input = None
 
         # Canonicalize the first human pose and corresponding waypoints.
+
         cano_prev_human_pose, cano_seq_human_root_pos, cano_rot_mat = (
             canonicalize_first_human_and_waypoints(
                 first_human_pose=prev_interaction_end_human_pose,
@@ -1079,15 +1079,15 @@ class Trainer(object):
                 trans2joint=trans2joint,
                 parents=self.ds.parents,
                 trainer=self,
-                is_interaction=False,
-            )
-        )
+                is_interaction=False,))
+        
 
         data = torch.zeros(
             prev_interaction_end_human_pose.shape[0],
             seq_human_root_pos.shape[1],
             prev_interaction_end_human_pose.shape[-1],
         )  # BS X T X D
+
         data[:, :, :2] = cano_seq_human_root_pos[:, :, :2]  # BS X T X 2
         data[:, 0:1, :] = cano_prev_human_pose  # BS X 1 X D
 
@@ -1098,6 +1098,7 @@ class Trainer(object):
                 (data, torch.zeros(data.shape[0], data.shape[1], 4).to(data.device)),
                 dim=-1,
             )
+
             cond_mask = torch.cat(
                 (
                     cond_mask,
@@ -1107,6 +1108,7 @@ class Trainer(object):
                 ),
                 dim=-1,
             )
+
 
         # here data is the starting point for the disffusion model
         all_res_list, whole_cond_mask = (
@@ -1157,7 +1159,7 @@ class Trainer(object):
         )
         all_res_list[:, :, 24 * 3 :] = human_rot6d_res.reshape(
             all_res_list.shape[0], all_res_list.shape[1], 22 * 6
-        )
+        )        
 
         return all_res_list, whole_cond_mask, seq_human_root_pos, pred_feet_contact
 
@@ -1230,7 +1232,7 @@ class Trainer(object):
 
         for idx in range(num_seq):
             curr_global_rot_mat = human_jnts_global_rot_mat[idx]  # T X 22 X 3 X 3
-            curr_local_rot_mat = quat_ik_torch(curr_global_rot_mat)  # T X 22 X 3 X 3
+            curr_local_rot_mat = quat_ik_torch(curr_global_rot_mat, data_root_folder=self.data_root_folder)  # T X 22 X 3 X 3
             curr_local_rot_aa_rep = transforms.matrix_to_axis_angle(
                 curr_local_rot_mat
             )  # T X 22 X 3
@@ -1283,10 +1285,11 @@ class Trainer(object):
                 dest_mesh_vis_folder = os.path.join(self.vis_folder, "navigation_vis")
             else:
                 dest_mesh_vis_folder = os.path.join(self.vis_folder, vis_tag)
+
             if os.path.exists(dest_mesh_vis_folder):
                 import shutil
-
                 shutil.rmtree(dest_mesh_vis_folder)
+                
             if not os.path.exists(dest_mesh_vis_folder):
                 os.makedirs(dest_mesh_vis_folder)
 

@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import warnings
 import pickle
 import time
 import random
@@ -123,7 +124,7 @@ class Trainer(object):
         self.add_interaction_root_xy_ori = self.opt.add_interaction_root_xy_ori
         self.add_interaction_feet_contact = self.opt.add_interaction_feet_contact
 
-        self.add_language_condition = True
+        self.add_language_condition = opt.add_language_condition_for_interaction
 
         self.use_first_frame_bps = self.opt.use_first_frame_bps
 
@@ -145,7 +146,7 @@ class Trainer(object):
 
         self.add_start_end_object_pos_xy = self.opt.add_start_end_object_pos_xy
 
-        self.add_waypoints_xy = True
+        self.add_waypoints_xy = self.opt.add_waypoints_xy_interaction
 
         self.remove_target_z = self.opt.remove_target_z
 
@@ -333,12 +334,10 @@ class Trainer(object):
         torch.save(
             data, os.path.join(self.results_folder, "model-" + str(milestone) + ".pt")
         )
+        print("Saved model at step %d to %s" % (milestone, self.results_folder))
 
     def load(self, milestone):
-        data = torch.load(
-            os.path.join(self.results_folder, "model-" + str(milestone) + ".pt")
-        )
-
+        data = torch.load(os.path.join(self.results_folder, "model-" + (milestone) + ".pt"))
         self.step = data["step"]
         self.model.load_state_dict(data["model"], strict=False)
         self.ema.load_state_dict(data["ema"], strict=False)
@@ -693,16 +692,19 @@ class Trainer(object):
                                 )
 
                         else:
-                            loss_diffusion = self.model(
+                            loss_dict = self.model(
                                 data,
                                 ori_data_cond,
                                 cond_mask,
                                 padding_mask,
                                 contact_labels=contact_labels,
                                 rest_human_offsets=rest_human_offsets,
+                                ds=self.ds,
+                                data_dict=data_dict,
                             )
+
                     else:
-                        loss_diffusion = self.model(
+                        loss_dict = self.model(
                             obj_data, ori_data_cond, cond_mask, padding_mask
                         )
 
@@ -1012,13 +1014,15 @@ class Trainer(object):
                                     )
                                 )
                         else:
-                            val_loss_diffusion = self.model(
+                            loss_dict = self.model(
                                 data,
                                 ori_data_cond,
                                 cond_mask,
                                 padding_mask,
                                 contact_labels=contact_labels,
                                 rest_human_offsets=rest_human_offsets,
+                                ds=self.val_ds,
+                                data_dict=val_data_dict,
                             )
                     else:
                         val_loss_diffusion = self.model(
@@ -1276,9 +1280,7 @@ class Trainer(object):
             cond_mask = self.prep_mimic_A_star_path_condition_mask_pos_xy_only(
                 val_obj_data, val_data_dict["seq_len"]
             )
-
             cond_mask = end_pos_cond_mask * cond_mask
-
         else:
             cond_mask = None
 
@@ -1838,7 +1840,7 @@ class Trainer(object):
         )
         # # BS X 1 X T X Nv X 3, BS X 1 X T X 24 X 3, BS X T X Nv' X 3 ]
 
-        parents = torch.from_numpy(get_smpl_parents()).to(human_jnts.device)  # 24
+        parents = torch.from_numpy(get_smpl_parents(data_root_folder=os.path.join(self.data_root_folder, "..", "smpl_all_models"))).to(human_jnts.device)  # 24
         human_local_jnts = (
             human_jnts - human_jnts[:, :, :, parents, :]
         )  # BS X 1 X T X 24 X 3
@@ -2279,7 +2281,6 @@ class Trainer(object):
         dest_mesh = trimesh.Trimesh(
             vertices=mesh_verts, faces=mesh_faces, process=False
         )
-
         result = trimesh.exchange.ply.export_ply(dest_mesh, encoding="ascii")
         output_file = open(mesh_path, "wb+")
         output_file.write(result)
@@ -2344,25 +2345,24 @@ class Trainer(object):
                 num_seq, -1, 3, 3
             )  # N X T X 3 X 3
 
-        num_joints = 24
-
         if self.pred_human_motion:
             normalized_global_jpos = all_res_list[
-                :, :, 3 + 9 : 3 + 9 + num_joints * 3
-            ].reshape(num_seq, -1, num_joints, 3)
+                :, :, 3 + 9 : 3 + 9 + self.opt.num_joints * 3
+            ].reshape(num_seq, -1, self.opt.num_joints, 3)
             global_jpos = self.ds.de_normalize_jpos_min_max(
-                normalized_global_jpos.reshape(-1, num_joints, 3)
+                normalized_global_jpos.reshape(-1, self.opt.num_joints, 3)
             )
         else:  # Not used!!!
             assert True, "Shouldn't be used!!!"
 
-        global_jpos = global_jpos.reshape(num_seq, -1, num_joints, 3)  # N X T X 22 X 3
+        global_jpos = global_jpos.reshape(num_seq, -1, self.opt.num_joints, 3)  # N X T X 22 X 3
 
         global_root_jpos = global_jpos[:, :, 0, :].clone()  # N X T X 3
 
         human_jnts_global_rot_6d = all_res_list[
             :, :, 3 + 9 + 24 * 3 : 3 + 9 + 24 * 3 + 22 * 6
         ].reshape(num_seq, -1, 22, 6)
+
         human_jnts_global_rot_mat = transforms.rotation_6d_to_matrix(
             human_jnts_global_rot_6d
         )  # N X T X 22 X 3 X 3
@@ -2370,6 +2370,7 @@ class Trainer(object):
         trans2joint = (
             ref_data_dict["trans2joint"].to(all_res_list.device).squeeze(1)
         )  # BS X  3
+
         if all_res_list.shape[0] != trans2joint.shape[0]:
             trans2joint = trans2joint.repeat(num_seq, 1, 1)  # N X 24 X 3
 
@@ -2422,13 +2423,13 @@ class Trainer(object):
                 betas.cuda(),
                 [gender],
                 self.ds.bm_dict,
-                return_joints24=True,
-            )
-
+                return_joints24=True,)
+            
             # Get object verts
             obj_rest_verts, obj_mesh_faces = self.ds.load_rest_pose_object_geometry(
                 object_name
             )
+            
             obj_rest_verts = torch.from_numpy(obj_rest_verts)
 
             obj_mesh_verts = self.ds.load_object_geometry_w_rest_geo(
@@ -2602,9 +2603,10 @@ class Trainer(object):
                     "obj_rot_mat": obj_rot_mat_list[-1],
                     "object_name": curr_object_name,
                 }
+
                 human_object_results_path = os.path.join(
-                    mesh_save_folder, "human_object_results.pkl"
-                )
+                    mesh_save_folder, "human_object_results.pkl")
+                
                 with open(human_object_results_path, "wb") as f:
                     pickle.dump(human_object_results, f)
                 print(
@@ -2704,19 +2706,19 @@ class Trainer(object):
             pred_obj_rot_mat = all_res_list[:, :, 3 : 3 + 9].reshape(
                 num_seq, -1, 3, 3
             )  # N X T X 3 X 3
-        num_joints = 24
+
 
         if self.pred_human_motion:
             normalized_global_jpos = all_res_list[
-                :, :, 3 + 9 : 3 + 9 + num_joints * 3
-            ].reshape(num_seq, -1, num_joints, 3)
+                :, :, 3 + 9 : 3 + 9 + self.opt.num_joints * 3
+            ].reshape(num_seq, -1, self.opt.num_joints, 3)
             global_jpos = self.ds.de_normalize_jpos_min_max(
-                normalized_global_jpos.reshape(-1, num_joints, 3)
+                normalized_global_jpos.reshape(-1, self.opt.num_joints, 3)
             )
         else:  # Not used!!!
-            global_jpos = data_dict["ori_motion"][:, :, : num_joints * 3]
+            global_jpos = data_dict["ori_motion"][:, :, : self.opt.num_joints * 3]
 
-        global_jpos = global_jpos.reshape(num_seq, -1, num_joints, 3)  # N X T X 22 X 3
+        global_jpos = global_jpos.reshape(num_seq, -1, self.opt.num_joints, 3)  # N X T X 22 X 3
 
         # For putting human into 3D scene
         if move_to_planned_path is not None:
@@ -2736,6 +2738,7 @@ class Trainer(object):
         trans2joint = (
             data_dict["trans2joint"].to(all_res_list.device).squeeze(1)
         )  # BS X  3
+        
         seq_len = data_dict[
             "seq_len"
         ]  # BS, should only be used during for single window generation.
@@ -3308,13 +3311,16 @@ class Trainer(object):
                 Could be None if add_feet_contact is False.
 
         """
+
         if rest_human_offsets is None:
-            raise ValueError(
-                "rest_human_offsets should not be None for interaction sequence."
-            )
+            warnings.warn("rest human offsets is None! Might cause errors further along the implementation!")
+            # raise ValueError(
+            #     "rest_human_offsets should not be None for interaction sequence."
+            # )
 
         if trans2joint is None:
-            raise ValueError("trans2joint should not be None for interaction sequence.")
+            warnings.warn("trans2joint is None! Might cause errors further along the implementation!")
+            # raise ValueError("trans2joint should not be None for interaction sequence.")
 
         extra_dim = 0
         if self.use_object_keypoints:
@@ -3333,6 +3339,7 @@ class Trainer(object):
             (planned_obj_path.shape[0] - 1) * 30,
             3,
         ).cuda()
+
         seq_obj_com_pos[:, 0:1, :] = start_obj_pos_on_planned_path[
             None
         ].clone()  # unnormalized
@@ -3423,6 +3430,7 @@ class Trainer(object):
 
         bs_window_len = torch.zeros(val_obj_data.shape[0])
         bs_window_len[:] = self.window
+        
         if self.add_waypoints_xy:
             end_pos_cond_mask = self.prep_start_end_condition_mask_pos_only(
                 torch.zeros(
@@ -3739,6 +3747,8 @@ def build_interaction_trainer(
     use_wandb: bool = False,
     load_ds: bool = False,
 ) -> Trainer:
+    
+
     interaction_model = ObjectCondGaussianDiffusion(
         opt,
         d_feats=repr_dim,
@@ -3775,7 +3785,7 @@ def build_interaction_trainer(
         use_wandb=use_wandb,
         load_ds=load_ds,
     )
-    
+
     return interaction_trainer
 
 
@@ -3932,8 +3942,8 @@ def run_interaction_trainer(
         add_root_ori=add_root_ori,
         add_feet_contact=add_feet_contact,
     )
-    saved_all_res_list = all_res_list.clone()
 
+    saved_all_res_list = all_res_list.clone()
     # NOTE: Assume the batch size is 1.
     idx = 0
     (
@@ -4082,8 +4092,7 @@ def run_train(opt, device):
         gradient_accumulate_every=2,  # gradient accumulation steps
         ema_decay=0.995,  # exponential moving average decay
         amp=True,  # turn on mixed precision
-        results_folder=str(wdir),
-    )
+        results_folder=str(wdir),    )
 
     trainer.train()
     torch.cuda.empty_cache()

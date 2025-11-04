@@ -201,8 +201,7 @@ class MeshViewer(object):
             matrix[:3, :3] = np.c_[x, y, z]
             nodes.append(
                 pyrender.Node(
-                    light=pyrender.DirectionalLight(color=np.ones(3),
-                                                    intensity=1.0),
+                    light=pyrender.DirectionalLight(color=np.ones(3), intensity=1.0),
                     matrix=matrix
                 ))
 

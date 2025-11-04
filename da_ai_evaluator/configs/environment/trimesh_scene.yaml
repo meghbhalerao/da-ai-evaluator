@@ -1,0 +1,3 @@
+obj_list: ['largetable', 'smallbox']
+obj_type: ['static', 'static']
+asset_root_dir: /home/mb230/projects/da-ai-evaluator/da_ai_evaluator/environments/scenes/assets

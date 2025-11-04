@@ -119,6 +119,7 @@ def save_verts_faces_to_mesh_file_w_object(
         os.makedirs(save_mesh_folder)
 
     num_meshes = mesh_verts.shape[0]
+
     for idx in range(num_meshes):
         mesh = trimesh.Trimesh(vertices=mesh_verts[idx], faces=mesh_faces)
         curr_mesh_path = os.path.join(save_mesh_folder, "%05d" % (idx) + ".ply")
@@ -128,4 +129,5 @@ def save_verts_faces_to_mesh_file_w_object(
         curr_obj_mesh_path = os.path.join(
             save_mesh_folder, "%05d" % (idx) + "_object.ply"
         )
+        
         obj_mesh.export(curr_obj_mesh_path)

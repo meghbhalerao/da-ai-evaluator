@@ -15,8 +15,11 @@ wandb_pj_name: ""
 entity: ""
 exp_name: "diff_trans"
 device: "0"
+base_results_folder: "./saved_stuff"
 
 window: 120
+overlap_frame_num: 60
+num_traj_sample: 10
 
 batch_size: 32
 learning_rate: 0.0002
@@ -31,6 +34,10 @@ n_head_nav: 4
 d_k_nav: 256
 d_v_nav: 256
 d_model_nav: 512
+add_language_condition_for_nav: true
+human_start_pos: [0,0,0]
+human_end_pos: [5,5,0]
+
 
 # Testing flags
 test_on_train: false
@@ -52,6 +59,7 @@ use_object_split: false
 add_start_end_object_pos_rot: false
 add_start_end_object_pos: false
 add_start_end_object_pos_xy: false
+add_language_condition_for_interaction: true
 
 # Waypoint settings
 use_random_waypoints: false
@@ -60,6 +68,7 @@ vis_waypoints: false
 # Model configuration flags
 remove_target_z: false
 use_guidance_in_denoising: false
+guidance_time_step: 10
 use_optimization_in_denoising: false
 add_rest_human_skeleton: false
 use_first_frame_bps: false
@@ -87,9 +96,12 @@ add_interaction_root_xy_ori: false
 add_interaction_feet_contact: false
 add_object_in_wrist_loss: false 
 add_object_vel_loss: false
+fix_feet_floor_penetration: false
+fix_feet_sliding: false
 add_wrist_relative: false
 add_object_static: false
 use_noisy_traj: false
+add_waypoints_xy_interaction: true
 milestone: 10
 
 # Finger motion settings
@@ -172,5 +184,15 @@ finger_train_both_sensor: true
 finger_proximity_sensor_condition: true
 finger_ref_pose_condition: true
 
-
+# Visualization settings
+fixed_camera_pose: true
 # custom specifications for navigation, in some frame of
+fps: 30
+save_raw_results: false
+raw_results_folder: raw_res_all
+# scene conditioned sample arguments:
+mujoco_scene_fp: /home/mb230/projects/da-ai-evaluator/da_ai_evaluator/environments/mujoco_xmls/custom_scenes/scene_humanoid_smpl.xml
+scene_type: mujoco
+
+# smplx model parameters (these are not really changeable, i.e. the smplx mode is fixed, but for better code readability, it is good to have these here)
+num_joints: 24

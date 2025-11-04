@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import pickle
 import subprocess
 from typing import List, Optional, Tuple
@@ -826,6 +827,7 @@ def smplx_ik(
     feet: bool = False,
     comp_device="cuda",
     gender="male",
+    opt = None,
 ):
     # human_jnts: global joint position, T X 24 X 3
     # human_root_trans: T X 3
@@ -859,26 +861,29 @@ def smplx_ik(
         ).to(comp_device)
         return ik_engine
 
+    data_root_folder = opt.data_root_folder
+    
+
     n_joints = 22
     if gender == "male":
         bm_fname = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../data/smpl_all_models/smplx/SMPLX_MALE.npz",
+            data_root_folder, "..",
+            "smpl_all_models/smplx/SMPLX_MALE.npz",
         )
     elif gender == "female":
         bm_fname = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../data/smpl_all_models/smplx/SMPLX_FEMALE.npz",
+            data_root_folder,
+            "..", "smpl_all_models/smplx/SMPLX_FEMALE.npz",
         )
     elif gender == "neutral":
-        bm_fname = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../data/smpl_all_models/smplx/SMPLX_NEUTRAL.npz",
+        bm_fname = os.path.join(data_root_folder, "..", 
+            "smpl_all_models/smplx/SMPLX_NEUTRAL.npz",
         )
     else:
         raise ValueError("Invalid gender")
 
     ik_engine = build_ik_engine(right_wrist, left_wrist)
+
     source_pts = SourceKeyPoints(
         bm=bm_fname,
         n_joints=n_joints,
@@ -911,7 +916,7 @@ def smplx_ik(
     curr_seq_local_jpos = rest_human_offsets.repeat(T, 1, 1)  # T X 24 X 3
     curr_seq_local_jpos[:, 0] = human_root_trans
     global_quat, _ = quat_fk_torch(
-        local_joint_rot_mat.cuda(), curr_seq_local_jpos.cuda()
+        local_joint_rot_mat.cuda(), curr_seq_local_jpos.cuda(), data_root_folder=data_root_folder
     )  # T X 22 X 4
     global_rot_mat = transforms.quaternion_to_matrix(global_quat)
     global_6d = transforms.matrix_to_rotation_6d(global_rot_mat)  # T X 22 X 6
@@ -1364,10 +1369,10 @@ def load_planned_path_as_waypoints(
         # 2. Remove the last waypoint since next interaction sequence use it as first object com.
         xy_data[0:1, :] = start_waypoint
 
+
     if load_for_nav:
         dense_xy_data = sample_dense_waypoints_navigation(
-            xy_data.detach().cpu().numpy()
-        )
+            xy_data.detach().cpu().numpy())
         dense_xy_data = torch.from_numpy(dense_xy_data).float()
     else:
         # For interaction sequence
@@ -1401,14 +1406,10 @@ def load_planned_path_as_waypoints(
 
     if use_canonicalization:
         cano_quat, cano_planned_data = canonizalize_planned_path(planned_data)  # T X 3
-    else:
-        cano_planned_data = planned_data
-
-    if use_canonicalization:
         return cano_quat, cano_planned_data
     else:
+        cano_planned_data = planned_data
         return cano_planned_data
-
 
 def generate_T_pose(opt,
     rest_human_offsets: torch.Tensor,
@@ -1428,12 +1429,12 @@ def generate_T_pose(opt,
     curr_seq_local_jpos = rest_human_offsets  # 1 X 24 X 3
     curr_seq_local_jpos[0, 0, :2] = planned_obj_path[0, :2]
     curr_seq_local_jpos[0, 0, 2] = 0.905
-    local_joint_rot_mat = pickle.load(open(os.path.join(opt.data_root_folder, "local_joint_rot_mat.pkl"), "rb"))[
+    local_joint_rot_mat = pickle.load(open(os.path.join(opt.data_root_folder, "..", "local_joint_rot_mat.pkl"), "rb"))[
         0:1
     ]  # 1 X 22 X 3 X 3
     global_quat, global_pos = quat_fk_torch(
-        local_joint_rot_mat.cuda(), curr_seq_local_jpos.cuda()
-    )
+        local_joint_rot_mat.cuda(), curr_seq_local_jpos.cuda(),
+    data_root_folder=opt.data_root_folder)
     global_rot_mat = transforms.quaternion_to_matrix(global_quat)
     global_6d = transforms.matrix_to_rotation_6d(global_rot_mat)
     return torch.cat((global_pos.reshape(-1), global_6d.reshape(-1))).reshape(1, 1, -1)
@@ -1540,21 +1541,19 @@ def fix_feet(
 
     return target_human_jnts
 
-phys2smplx_idx = [0, 1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12, 14, 33, 13, 15, 34, 16, 35, 17, 36, \
-        18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, \
-        37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+phys2smplx_idx = [0, 1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12, 14, 33, 13, 15, 34, 16, 35, 17, 36, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
 
 phys_to_smplx_map = {i: phys2smplx_idx[i] for i in range(len(phys2smplx_idx))}
 smplx_to_phys_map = {v: k for k, v in phys_to_smplx_map.items()}
 
 smplx2phys_idx = [smplx_to_phys_map[i] for i in range(52)]
 
-phys_keys = ['Pelvis', 'L_Hip', 'L_Knee', 'L_Ankle', 'L_Toe', 'R_Hip', 'R_Knee', 'R_Ankle', 'R_Toe', 'Torso',
-                'Spine', 'Chest', 'Neck', 'Head', 'L_Thorax', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'L_Index1',
+phys_keys = ['Pelvis', 'L_Hip', 'L_Knee', 'L_Ankle', 'L_Toe', 'R_Hip', 'R_Knee', 'R_Ankle', 'R_Toe', 'Torso', 'Spine', 'Chest', 'Neck', 'Head', 'L_Thorax', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'L_Index1',
                 'L_Index2', 'L_Index3', 'L_Middle1', 'L_Middle2', 'L_Middle3', 'L_Pinky1', 'L_Pinky2', 'L_Pinky3',
                 'L_Ring1', 'L_Ring2', 'L_Ring3', 'L_Thumb1', 'L_Thumb2', 'L_Thumb3', 'R_Thorax', 'R_Shoulder',
                 'R_Elbow', 'R_Wrist', 'R_Index1', 'R_Index2', 'R_Index3', 'R_Middle1', 'R_Middle2', 'R_Middle3',
                 'R_Pinky1', 'R_Pinky2', 'R_Pinky3', 'R_Ring1', 'R_Ring2', 'R_Ring3', 'R_Thumb1', 'R_Thumb2', 'R_Thumb3']
+
 
 def process_same_object_name(object_endtime_pairs):
     object_name_count = {}
@@ -1784,6 +1783,7 @@ def save_motion_params(
         'results', 'motion_params',
         name
     )
+    
     if not os.path.exists(dir):
         os.makedirs(dir)
     path = os.path.join(dir, "seq_{}.json".format(p_idx))

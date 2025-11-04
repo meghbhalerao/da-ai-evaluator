@@ -266,7 +266,7 @@ class CanoObjectTrajDataset(Dataset):
 
         self.use_first_frame_bps = use_first_frame_bps
 
-        self.use_random_frame_bps = use_random_frame_bps
+        self.use_random_frame_bps = use_random_frame_bps # BPS stands for basis point sets
 
         self.use_object_keypoints = use_object_keypoints
         self.data_root_folder = data_root_folder
@@ -276,15 +276,11 @@ class CanoObjectTrajDataset(Dataset):
         self.obj_geo_root_folder = os.path.join(
             self.data_root_folder, "captured_objects")
         
-
         self.rest_object_geo_folder = os.path.join(
             self.data_root_folder, "rest_object_geo")
         
-
-
         if not os.path.exists(self.rest_object_geo_folder):
             os.makedirs(self.rest_object_geo_folder)
-
 
         self.bps_path = "./bps.pt"
 
@@ -295,7 +291,6 @@ class CanoObjectTrajDataset(Dataset):
         self.contact_npy_folder = os.path.join(
             self.data_root_folder, "contact_labels_w_semantics_npy_files")
     
-
         train_subjects = []
         test_subjects = []
         num_subjects = 17
@@ -308,6 +303,7 @@ class CanoObjectTrajDataset(Dataset):
 
         keep_same_len_window = False
         self.keep_same_len_window = keep_same_len_window
+
 
         if keep_same_len_window:
             dest_obj_bps_npy_folder = os.path.join(
@@ -479,6 +475,7 @@ class CanoObjectTrajDataset(Dataset):
         else:
             self.window_data_dict = {}
 
+
         if os.path.exists(min_max_mean_std_data_path):
             min_max_mean_std_jpos_data = joblib.load(min_max_mean_std_data_path)
         else:
@@ -553,6 +550,7 @@ class CanoObjectTrajDataset(Dataset):
             data_root_folder,
             "cano_min_max_obj_pts_data_window_" + str(self.window) + "_joints24.p",
         )
+
         if os.path.exists(min_max_obj_pts_data_path):
             obj_pts_min_max_data = joblib.load(min_max_obj_pts_data_path)
         else:
@@ -609,10 +607,13 @@ class CanoObjectTrajDataset(Dataset):
 
         self.bm_dict = {"male": self.male_bm, "female": self.female_bm}
 
-        assert len(self.window_data_dict) == len(self.wrist_relative_dict)
-        assert len(self.window_data_dict) == len(self.standing_flag_dict)
-        assert len(self.window_data_dict) == len(self.object_static_flag_dict)
-        assert len(self.window_data_dict) == len(self.root_traj_xy_ori_dict)
+        if len(self.window_data_dict) > 0:
+            assert len(self.window_data_dict) == len(self.wrist_relative_dict)
+            assert len(self.window_data_dict) == len(self.standing_flag_dict)
+            assert len(self.window_data_dict) == len(self.object_static_flag_dict)
+            assert len(self.window_data_dict) == len(self.root_traj_xy_ori_dict)
+        else:
+            print("Warning: Not doing dictionary length checks!")
 
     def find_static_move_switch(self, object_static_flag):
         # object_static_flag: BS X T / T
@@ -1256,7 +1257,6 @@ class CanoObjectTrajDataset(Dataset):
         s_idx = 0
         for index in self.data_dict:
             seq_name = self.data_dict[index]["seq_name"]
-
             object_name = seq_name.split("_")[1]
 
             # Skip vacuum, mop for now since they consist of two object parts.

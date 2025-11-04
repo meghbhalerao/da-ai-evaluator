@@ -12,9 +12,11 @@ from packages.diffusion_motion_generation.trainer_interaction_motion_diffusion i
     run_validation)
 
 from packages.diffusion_motion_generation.sample import run_sample
-
+from packages.diffusion_motion_generation.human_sample import run_human_sample
+from packages.diffusion_motion_generation.scene_conditioned_sample import run_sample_scene_conditioned
 import torch
-
+from utils.utils import make_scene
+from utils.trimesh_utils import TableScene
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig):
@@ -24,25 +26,35 @@ def main(cfg: DictConfig):
     OmegaConf.set_struct(
         cfg, False
     )  # this is done to allow keys that are not in the original config dict to be added, in case such a functionality is needed
-    if cfg.algorithm.name == "diff_trans":
-
-        cfg.algorithm.save_dir = os.path.join(
-            cfg.algorithm.project, cfg.algorithm.exp_name)
-        
+    if cfg.algorithm.name == "diff_trans":        
+        cfg.algorithm.save_dir = os.path.join(cfg.algorithm.project, cfg.algorithm.exp_name)
         device = torch.device(
             f"cuda:{cfg.algorithm.device}" if torch.cuda.is_available() else "cpu")
-        
-
         if cfg.algorithm.phase in ("validation", "valid"):
             run_validation(cfg.algorithm, device)
         elif cfg.algorithm.phase in ("training", "train"):
             run_train(cfg.algorithm, device)
         elif cfg.algorithm.phase in ("sample"):
             run_sample(cfg.algorithm, device)
+        elif cfg.algorithm.phase in ("scene_conditioned_sample"):
+            if cfg.algorithm.scene_type == 'mujoco':
+                run_sample_scene_conditioned(cfg.algorithm, device, mujoco_scene_fp = cfg.algorithm.mujoco_scene_fp, scene_type = 'mujoco')
+            elif cfg.algorithm.scene_type == 'trimesh':
+                run_sample_scene_conditioned(cfg.algorithm, device, trimesh_scene = TableScene(), scene_type = 'trimesh')
+            else:
+                raise ValueError(f"Scene type {cfg.algorithm.scene_type} not supported for scene conditioned sampling!")
+        elif cfg.algorithm.phase in ('human_sample'):
+            # make and render the scene first
+            # scene = make_scene(cfg.environment)
+            # scene.render()
+            # sys.exit()
+            run_human_sample(cfg.algorithm, device)
+        elif cfg.algorithm.phase in ('kinematic_control'):
+            pass
         else:
             raise ValueError(f"Phase {cfg.algorithm.phase} does not have support yet!")
 
-    sys.exit(0)
+    sys.exit()
 
     from dataloaders.dataloader import convert_data_format
     from trainers.trainer import TrainerAllTypes

@@ -64,6 +64,7 @@ def run_grasp(
     no_fc: bool = False,
     in_parallel: bool = False,
     return_multiple_grasp: bool = False,
+    opt = None,
 ):
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -147,7 +148,7 @@ def run_grasp(
     total_batch_size = len(args.object_code_list) * args.batch_size
 
     grasp_generation_root = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        opt.data_root_folder, "..", "..",
         "grasp_generation",
     )
     hand_model = HandModel(
@@ -162,6 +163,7 @@ def run_grasp(
         batch_size=args.batch_size * len(args.object_code_list),
         left_hand=args.lefthand,
         no_fc=args.no_fc,
+        opt = opt
     )
 
     object_model = ObjectModel(
@@ -266,8 +268,8 @@ def run_grasp(
 
     for step in tqdm(range(1, epoch), desc="optimizing"):
         s = optimizer.try_step()
-
         optimizer.zero_grad()
+
         new_energy, new_E_fc, new_E_dis, new_E_pen, new_E_prior, new_E_spen = (
             cal_energy(
                 hand_model,
@@ -303,6 +305,7 @@ def run_grasp(
             "results",
         )
     )
+    
     os.makedirs(result_path, exist_ok=True)
 
     wrist_pos_in_obj, wrist_rot_mat_in_obj, finger_local_rot_6d, obj_to_palm = (

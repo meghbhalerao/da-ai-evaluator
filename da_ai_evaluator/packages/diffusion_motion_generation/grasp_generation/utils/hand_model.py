@@ -45,6 +45,7 @@ class HandModel:
         left_hand=False,
         batch_size=1,
         no_fc=False,
+        opt = None,
     ):
         """
         Create a Hand Model for MANO
@@ -62,13 +63,10 @@ class HandModel:
         """
         self.left_hand = left_hand  # NOTE: only support all batch left or right
         # load SMPL-X
-        smplx_model_path = os.path.join(
-            os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            ),
-            "data",
+        smplx_model_path = os.path.join(opt.data_root_folder, "..",
             "smpl_all_models",
         )
+
         self.beta = torch.tensor([beta]).to(device=device)
         self.sbj_m = smplx.create(
             model_path=smplx_model_path,
@@ -81,10 +79,8 @@ class HandModel:
         data = pickle.load(
             open(
                 os.path.join(
-                    os.path.dirname(
-                        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    ),
-                    "data",
+                    opt.data_root_folder,
+                    "..",
                     "smpl_all_models",
                     "MANO_SMPLX_vertex_ids.pkl",
                 ),
@@ -95,11 +91,8 @@ class HandModel:
         self.rhand_verts = torch.from_numpy(data["right_hand"]).to(device=device)
         data = pickle.load(
             open(
-                os.path.join(
-                    os.path.dirname(
-                        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    ),
-                    "data",
+                os.path.join(opt.data_root_folder,
+                    "..",
                     "smpl_all_models",
                     "MANO_SMPLX_face_ids.pkl",
                 ),

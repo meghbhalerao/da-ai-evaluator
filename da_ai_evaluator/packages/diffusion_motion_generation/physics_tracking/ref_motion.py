@@ -108,7 +108,7 @@ def compute_motion(fps:int, skeleton: Skeleton, local_q, local_p):
         else:
             q = quatmultiply(orient[pid], skeleton.rot[nid])
             orient.append(quatmultiply(q, local_q[:, nid]))
-            pos.append(pos[pid] + rotatepoint(orient[pid], local_p[:, nid]+skeleton.trans[nid].unsqueeze(0)))
+            pos.zappend(pos[pid] + rotatepoint(orient[pid], local_p[:, nid]+skeleton.trans[nid].unsqueeze(0)))
 
     orient = torch.stack(orient, 1) # N_frames x N_links x 4
     pos = torch.stack(pos, 1)       # N_frames x N_links x 3

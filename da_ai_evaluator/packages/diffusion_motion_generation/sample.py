@@ -442,7 +442,7 @@ def build_finger_trainer(finger_opt, device) -> FingerTrainer:
 def simple_random_setting(
     object_list,
     sub_num,
-    num=1,
+    num_traj = 10,
     default_action_name="lift",
 ):
     """
@@ -477,7 +477,7 @@ def simple_random_setting(
         text_list,
     ) = [], [], [], [], [], []
     table_height_list = []
-    for i in range(num):
+    for i in range(num_traj):
         (
             sub_obj_initial_rot_mat_list,
             sub_obj_end_rot_mat_list,
@@ -564,6 +564,7 @@ def run_grasp_generation(
     no_force_closure: bool = False,
     grasp_batch: int = 1,
     grasp_iter: int = 5000,
+    opt = None,
 ) -> Tuple[
     Optional[torch.Tensor],
     Optional[torch.Tensor],
@@ -587,6 +588,7 @@ def run_grasp_generation(
             object_code_list=[curr_object_name],
             n_iter=grasp_iter,
             no_fc=no_force_closure,
+            opt = opt
         )
         right_wrist_pos_in_obj = right_wrist_pos_in_obj[0]
         right_wrist_rot_mat_in_obj = right_wrist_rot_mat_in_obj[0]
@@ -594,8 +596,8 @@ def run_grasp_generation(
 
         right_wrist_pose = {
             "wrist_pos": right_wrist_pos_in_obj.cpu(),
-            "wrist_rot": right_wrist_rot_mat_in_obj.cpu(),
-        }
+            "wrist_rot": right_wrist_rot_mat_in_obj.cpu(),}
+        
     else:
         right_wrist_pos_in_obj = None
         right_wrist_rot_mat_in_obj = None
@@ -615,6 +617,7 @@ def run_grasp_generation(
             object_code_list=[curr_object_name],
             n_iter=grasp_iter,
             no_fc=no_force_closure,
+            opt = opt
         )
         left_wrist_pos_in_obj = left_wrist_pos_in_obj[0]  # 3
         left_wrist_rot_mat_in_obj = left_wrist_rot_mat_in_obj[0]  # 3 X 3
@@ -785,6 +788,7 @@ def render_motion_clip(
     use_guidance_str: str,
     interaction_checkpoint_epoch: str,
     video_save_dir_name: str,
+    fixed_camera_pose: str
 ) -> str:
     """Render a motion clip from the given mesh save folders.
 
@@ -819,10 +823,14 @@ def render_motion_clip(
     # print(interaction_checkpoint_epoch)
     # print(use_guidance_str)
     # sys.exit()
+    if fixed_camera_pose:
+        fixed_camera_pose_arg = "--fixed_camera_pose"
+    else:
+        fixed_camera_pose_arg = ""
 
     subprocess.run(
         [   "python",
-            "visualizer/vis/visualize_long_sequence_results.py",
+            "packages/diffusion_motion_generation/visualizer/vis/visualize_long_sequence_results.py",
             "--result-path",
             mesh_save_folders_str,
             "--initial-obj-path",
@@ -840,6 +848,7 @@ def render_motion_clip(
             "--use_guidance",
             use_guidance_str,
             "--offscreen",
+            f"{fixed_camera_pose_arg}"
         ]
     )
 
@@ -923,7 +932,6 @@ def set_obj_start_end(
         transforms.rotation_6d_to_matrix(obj_rot_mat_contact[0])
     )
     return obj_com_pos, obj_rot_mat
-
 
 def post_process(
     object_data_dict: Dict[str, Any],
@@ -1602,14 +1610,13 @@ def generate_navigation_motion(
     opt = None,
 ) -> Tuple[
     torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
-]:
+]:  
     # First navigation starts from T_start_pose.
     if prev_interaction_end_human_pose is None:
         prev_interaction_end_human_pose = generate_T_pose(opt,
             rest_human_offsets=rest_human_offsets,
             planned_obj_path=planned_obj_path,
         )
-    
     
 
     # Sample navigation motion.
@@ -1677,6 +1684,7 @@ def generate_navigation_motion(
             left_wrist=False,
             feet=(fix_feet_floor_penetration or fix_feet_sliding),
             gender=ref_data_dict["gender"][0],
+            opt = opt,
         )
         all_res_list[0, :, 24 * 3 : 24 * 3 + 22 * 6] = global_6d.reshape(-1, 22 * 6)
 
@@ -1754,6 +1762,7 @@ def generate_interaction_motion(
     fix_feet_sliding: bool = False,
     smooth_whole_traj: bool = False,
     no_force_closure: bool = False,
+    opt = None,
 ) -> Tuple[
     torch.Tensor,
     torch.Tensor,
@@ -1838,6 +1847,7 @@ def generate_interaction_motion(
         left_wrist_init_pose=left_wrist_pose,
         right_wrist_init_pose=right_wrist_pose,
         no_force_closure=no_force_closure,
+        opt = opt
     )
 
     # Stage 3: Run RefineNet.
@@ -1973,6 +1983,7 @@ def generate_interaction_motion(
             left_wrist=left_contact,
             feet=(fix_feet_floor_penetration or fix_feet_sliding),
             gender=ref_data_dict["gender"][0],
+            opt = opt,
         )
         all_res_list[0, :, 12 + 24 * 3 : 12 + 24 * 3 + 22 * 6] = global_6d.reshape(
             -1, 22 * 6
@@ -2086,6 +2097,7 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
     VISUALIZE: bool = True,
     fix_feet_floor_penetration: bool = True,
     fix_feet_sliding: bool = False,
+    base_results_folder: str = None,
 ):
     #################################################### load model ####################################################
     navigation_trainer = build_navi_trainer(opt, device, navi_milestone)
@@ -2102,6 +2114,7 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
     )
 
     finger_trainer = None
+
     if opt.add_finger_motion:
         finger_opt = build_finger_opt(opt)
         finger_trainer = build_finger_trainer(finger_opt, device)
@@ -2120,9 +2133,8 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
     ).reshape(1, 15 * 6)
 
     # Load all_object_data_dict from pickle file
-    all_object_data_dict_data = pickle.load(
-        open(os.path.join(opt.data_root_folder, "..", "all_object_data_dict_for_eval.pkl"), "rb")
-    )
+    all_object_data_dict_data = pickle.load(open(os.path.join(opt.data_root_folder, "..", "all_object_data_dict_for_eval.pkl"), "rb"))
+    
     all_object_data_dict = all_object_data_dict_data["all_object_data_dict"]
     ref_data_dict = all_object_data_dict_data["ref_data_dict"]
 
@@ -2151,7 +2163,7 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
         action_names_list,
         text_list, 
         table_height_list,
-    ) = simple_random_setting(object_list=object_list, sub_num=sub_num, default_action_name=opt.action_name)
+    ) = simple_random_setting(object_list=object_list, sub_num=sub_num, default_action_name=opt.action_name, num_traj=opt.num_traj_sample)
 
     # print(obj_initial_rot_mat_list,
     #     obj_end_rot_mat_list,
@@ -2172,10 +2184,7 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
 
     for p_idx in tqdm(range(num_planned_path)):
         # In each planned path, the sequence consists of multiple interactions and navigations.
-        
-
         num_sub_seq_path = len(path_data_list[p_idx])
-
         prev_interaction_end_human_pose = None
         prev_navigation_end_human_pose = None
         prev_interaction_motion = None
@@ -2198,18 +2207,23 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
         params_save_paths = []
         contact_start_frames = []
         contact_end_frames = []
-        for o_idx in range(num_sub_seq_path):
-            finger_all_res_list = None
 
-            if (o_idx + 1) % 2 == 0:
-                use_navigation_model = False
+        raw_results_dict  = {"raw_results_list": [], "raw_results_phase": []}
+
+        for o_idx in range(num_sub_seq_path):
+            
+            finger_all_res_list = None
+            
+            if (o_idx) % 2 == 0:
+                path_phase = "navigation"
             else:
-                use_navigation_model = True
+                path_phase = "interaction"
+
 
             # Only use the first path for canonicalization!
             # Use distance heuristics to determine the waypoints at frame 30, 60, 90.
             # Need to consider waypoints in navigation is human root, in interaction is object com.
-            if use_navigation_model and prev_interaction_end_human_pose is not None:
+            if path_phase == 'navigation' and prev_interaction_end_human_pose is not None:
                 start_waypoint = prev_interaction_end_human_pose[0, :, :2]  # 1 X 2
             else:
                 start_waypoint = None
@@ -2217,7 +2231,7 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
             planned_obj_path = load_planned_path_as_waypoints(
                 path_data_list[p_idx][o_idx],
                 use_canonicalization=False,
-                load_for_nav=use_navigation_model,
+                load_for_nav=(path_phase == "navigation"),
                 start_waypoint=start_waypoint,
             )
 
@@ -2233,10 +2247,53 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
             if interaction_trainer.use_guidance_in_denoising:
                 vis_tag = vis_tag + "_interaction_guidance"
 
-            print("Use navigation model: ", use_navigation_model)
-            
+            if path_phase == "navigation":
+                print("Navigation motion generation phase ....")
+                # Navigation motion generation.
+                (
+                    all_res_list,
+                    finger_all_res_list,
+                    prev_navigation_motion,
+                    prev_navigation_end_human_pose,
+                    prev_navigation_finger_motion,
+                    whole_cond_mask,
+                ) = generate_navigation_motion(
+                    interaction_trainer=fine_interaction_trainer,
+                    navigation_trainer=navigation_trainer,
+                    ref_data_dict=ref_data_dict,
+                    prev_interaction_motion=prev_interaction_motion,
+                    prev_interaction_end_human_pose=prev_interaction_end_human_pose,
+                    trans2joint=trans2joint,
+                    rest_human_offsets=rest_human_offsets,
+                    planned_obj_path=planned_obj_path,
+                    text_list=text_list,
+                    p_idx=p_idx,
+                    o_idx=o_idx,
+                    overlap_frame_num_navi=overlap_frame_num_navi,
+                    rest_left_hand_local_rot_6d=rest_left_hand_local_rot_6d,
+                    rest_right_hand_local_rot_6d=rest_right_hand_local_rot_6d,
+                    prev_interaction_finger_motion=prev_interaction_finger_motion,
+                    add_finger_motion=opt.add_finger_motion,
+                    fix_feet_floor_penetration=fix_feet_floor_penetration,
+                    fix_feet_sliding=fix_feet_sliding,
+                    opt = opt,
+                )
+                
+                _, _, _, _, _, dest_mesh_vis_folder, params_path = (
+                    navigation_trainer.gen_vis_res_human_only(
+                        all_res_list,
+                        planned_obj_path,
+                        whole_cond_mask,
+                        ref_data_dict,
+                        vis_tag=vis_tag,
+                        vis_wo_scene=True,
+                        cano_quat=None,
+                        finger_all_res_list=finger_all_res_list,))
+                
+                vis_tag = "navigation_pidx_{}_oidx_{}_epoch_{}".format(p_idx, o_idx, navi_milestone)
 
-            if not use_navigation_model:
+            elif path_phase == "interaction":
+                print("Interaction motion generation phase ....")
                 curr_object_name = object_names_list[p_idx][o_idx]
                 no_fc = decide_no_force_closure_from_objects(curr_object_name)
 
@@ -2279,6 +2336,7 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
                     fix_feet_sliding=fix_feet_sliding,
                     smooth_whole_traj=smooth_whole_traj,
                     no_force_closure=no_fc,
+                    opt = opt
                 )
 
                 # Save the initial and end object mesh for visualization.
@@ -2292,6 +2350,7 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
                     vis_wdir=opt.vis_wdir,
                     interaction_trainer=interaction_trainer,
                 )
+
                 initial_obj_paths.extend(initial_end_meshes)
 
                 # Save the interaction motion mesh for visualization.
@@ -2301,9 +2360,7 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
                 ) = save_interaction_motion_meshes(
                     interaction_trainer=interaction_trainer,
                     all_res_list=all_res_list,
-                    ref_obj_rot_mat=all_object_data_dict[curr_object_name][
-                        "reference_obj_rot_mat"
-                    ],
+                    ref_obj_rot_mat=all_object_data_dict[curr_object_name]["reference_obj_rot_mat"],
                     ref_data_dict=ref_data_dict,
                     step=coarse_milestone,
                     planned_waypoints_pos=planned_obj_path,
@@ -2312,84 +2369,51 @@ def cond_sample_res_w_long_planned_path_for_multi_objects(
                     dest_mesh_vis_folder=dest_mesh_vis_folder,
                     finger_all_res_list=finger_all_res_list,
                 )
-                mesh_save_folders.append(dest_mesh_vis_folder)
-                params_save_paths.append(params_path)
                 contact_start_frames.append(contact_start_frame)
                 contact_end_frames.append(contact_end_frame)
             else:
-                print("Using navigation model ....")
-
-
-                # Navigation motion generation.
-                (
-                    all_res_list,
-                    finger_all_res_list,
-                    prev_navigation_motion,
-                    prev_navigation_end_human_pose,
-                    prev_navigation_finger_motion,
-                    whole_cond_mask,
-                ) = generate_navigation_motion(
-                    interaction_trainer=fine_interaction_trainer,
-                    navigation_trainer=navigation_trainer,
-                    ref_data_dict=ref_data_dict,
-                    prev_interaction_motion=prev_interaction_motion,
-                    prev_interaction_end_human_pose=prev_interaction_end_human_pose,
-                    trans2joint=trans2joint,
-                    rest_human_offsets=rest_human_offsets,
-                    planned_obj_path=planned_obj_path,
-                    text_list=text_list,
-                    p_idx=p_idx,
-                    o_idx=o_idx,
-                    overlap_frame_num_navi=overlap_frame_num_navi,
-                    rest_left_hand_local_rot_6d=rest_left_hand_local_rot_6d,
-                    rest_right_hand_local_rot_6d=rest_right_hand_local_rot_6d,
-                    prev_interaction_finger_motion=prev_interaction_finger_motion,
-                    add_finger_motion=opt.add_finger_motion,
-                    fix_feet_floor_penetration=fix_feet_floor_penetration,
-                    fix_feet_sliding=fix_feet_sliding,
-                    opt = opt,
-                )
+                raise ValueError("Unknown path phase: {}".format(path_phase))
                 
                 # Save the navigation motion mesh for visualization.
-                vis_tag = "navigation_pidx_{}_oidx_{}_epoch_{}".format(
-                    p_idx, o_idx, navi_milestone
-                )
 
-                _, _, _, _, _, dest_mesh_vis_folder, params_path = (
-                    navigation_trainer.gen_vis_res_human_only(
-                        all_res_list,
-                        planned_obj_path,
-                        whole_cond_mask,
-                        ref_data_dict,
-                        vis_tag=vis_tag,
-                        vis_wo_scene=True,
-                        cano_quat=None,
-                        finger_all_res_list=finger_all_res_list,
-                    )
-                )
-
-                mesh_save_folders.append(dest_mesh_vis_folder)
-                params_save_paths.append(params_path)
+            print("Shape of all results is", all_res_list.shape)
+            
+            if opt.save_raw_results:
+                raw_results_dict["raw_results_list"].append(all_res_list)
+                raw_results_dict["raw_results_phase"].append(path_phase)
+            
+            mesh_save_folders.append(dest_mesh_vis_folder)
+            params_save_paths.append(params_path)
 
             # Render the current interaction and navigation motion videos.
             if VISUALIZE and o_idx % 2 == 1:
-
                 use_guidance_str = "1" if opt.use_guidance_in_denoising else "0"
                 interaction_epoch = str(coarse_milestone)
-                video_save_dir_name = os.path.join("visualizer_results", opt.vis_wdir)
-
+                video_save_dir_name = os.path.join(opt.project, opt.exp_name, "visualizer_results", opt.vis_wdir)
+                os.makedirs(video_save_dir_name, exist_ok=True)
                 video_path = render_motion_clip(mesh_save_folders=mesh_save_folders,
                     initial_end_obj_mesh_paths=initial_obj_paths,
                     p_idx=p_idx,
                     video_paths=video_paths,
                     use_guidance_str=use_guidance_str,
                     interaction_checkpoint_epoch=interaction_epoch,
-                    video_save_dir_name=video_save_dir_name,)
+                    video_save_dir_name=video_save_dir_name,
+                    fixed_camera_pose = opt.fixed_camera_pose)
 
                 mesh_save_folders = []
                 initial_obj_paths = []
                 video_paths.append(video_path)
 
+        # TODO
+        if opt.save_raw_results:
+            data_save_path = os.path.join(base_results_folder, "raw_results", f"path_{p_idx}")
+            os.makedirs(data_save_path, exist_ok=True)
+            file_path = os.path.join(data_save_path, 'nav_interact_res.pkl')
+            with open(file_path, 'wb') as file:
+                pickle.dump(raw_results_dict, file)
+            print(f"Saved navigation and interaction results at {file_path}")
+
+            
         # Merge the motion clips.
         if VISUALIZE:
             final_video_path = os.path.join(
@@ -2425,15 +2449,11 @@ def run_sample(
     if not opt.vis_wdir:
         raise ValueError("Please specify the vis_wdir for visualization.")
 
+    base_results_folder = os.path.join(opt.base_results_folder, opt.name, "results")
+
     # Create results folder if it doesn't exist.
-    if not os.path.exists("./results"):
-        os.makedirs("./results")
-
-    if not os.path.exists("./results/initial_obj_vis"):
-        os.makedirs("./results/initial_obj_vis")
-
-    if not os.path.exists("./results/motion_params"):
-        os.makedirs("./results/motion_params")
+    os.makedirs(os.path.join(base_results_folder, "initial_obj_vis"), exist_ok=True)
+    os.makedirs(os.path.join(base_results_folder, "motion_params"), exist_ok=True)
 
     cond_sample_res_w_long_planned_path_for_multi_objects(
         opt,
@@ -2442,6 +2462,9 @@ def run_sample(
         fine_milestone=fine_milestone,
         navi_milestone=navi_milestone,
         object_list=opt.test_object_names,
+        fix_feet_floor_penetration = opt.fix_feet_floor_penetration,
+        fix_feet_sliding = opt.fix_feet_sliding,
+        base_results_folder = base_results_folder
     )
 
     torch.cuda.empty_cache()
