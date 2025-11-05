@@ -1,4 +1,4 @@
-from da_ai_evaluator.environments.scenes.scene import Scene, Object
+from environments.scenes.scene import Scene, Object
 from typing import List, Literal
 
 def merge_dicts_strict(d1: dict, d2: dict) -> dict:

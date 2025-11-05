@@ -337,7 +337,10 @@ class Trainer(object):
         print("Saved model at step %d to %s" % (milestone, self.results_folder))
 
     def load(self, milestone):
-        data = torch.load(os.path.join(self.results_folder, "model-" + (milestone) + ".pt"))
+        data = torch.load(
+            os.path.join(self.results_folder, "model-" + str(milestone) + ".pt")
+        )
+
         self.step = data["step"]
         self.model.load_state_dict(data["model"], strict=False)
         self.ema.load_state_dict(data["ema"], strict=False)
@@ -1280,7 +1283,9 @@ class Trainer(object):
             cond_mask = self.prep_mimic_A_star_path_condition_mask_pos_xy_only(
                 val_obj_data, val_data_dict["seq_len"]
             )
+
             cond_mask = end_pos_cond_mask * cond_mask
+
         else:
             cond_mask = None
 
@@ -2281,6 +2286,7 @@ class Trainer(object):
         dest_mesh = trimesh.Trimesh(
             vertices=mesh_verts, faces=mesh_faces, process=False
         )
+
         result = trimesh.exchange.ply.export_ply(dest_mesh, encoding="ascii")
         output_file = open(mesh_path, "wb+")
         output_file.write(result)
@@ -2345,24 +2351,25 @@ class Trainer(object):
                 num_seq, -1, 3, 3
             )  # N X T X 3 X 3
 
+        num_joints = 24
+
         if self.pred_human_motion:
             normalized_global_jpos = all_res_list[
-                :, :, 3 + 9 : 3 + 9 + self.opt.num_joints * 3
-            ].reshape(num_seq, -1, self.opt.num_joints, 3)
+                :, :, 3 + 9 : 3 + 9 + num_joints * 3
+            ].reshape(num_seq, -1, num_joints, 3)
             global_jpos = self.ds.de_normalize_jpos_min_max(
-                normalized_global_jpos.reshape(-1, self.opt.num_joints, 3)
+                normalized_global_jpos.reshape(-1, num_joints, 3)
             )
         else:  # Not used!!!
             assert True, "Shouldn't be used!!!"
 
-        global_jpos = global_jpos.reshape(num_seq, -1, self.opt.num_joints, 3)  # N X T X 22 X 3
+        global_jpos = global_jpos.reshape(num_seq, -1, num_joints, 3)  # N X T X 22 X 3
 
         global_root_jpos = global_jpos[:, :, 0, :].clone()  # N X T X 3
 
         human_jnts_global_rot_6d = all_res_list[
             :, :, 3 + 9 + 24 * 3 : 3 + 9 + 24 * 3 + 22 * 6
         ].reshape(num_seq, -1, 22, 6)
-
         human_jnts_global_rot_mat = transforms.rotation_6d_to_matrix(
             human_jnts_global_rot_6d
         )  # N X T X 22 X 3 X 3
@@ -2370,7 +2377,6 @@ class Trainer(object):
         trans2joint = (
             ref_data_dict["trans2joint"].to(all_res_list.device).squeeze(1)
         )  # BS X  3
-
         if all_res_list.shape[0] != trans2joint.shape[0]:
             trans2joint = trans2joint.repeat(num_seq, 1, 1)  # N X 24 X 3
 
@@ -2423,13 +2429,13 @@ class Trainer(object):
                 betas.cuda(),
                 [gender],
                 self.ds.bm_dict,
-                return_joints24=True,)
-            
+                return_joints24=True,
+            )
+
             # Get object verts
             obj_rest_verts, obj_mesh_faces = self.ds.load_rest_pose_object_geometry(
                 object_name
             )
-
             obj_rest_verts = torch.from_numpy(obj_rest_verts)
 
             obj_mesh_verts = self.ds.load_object_geometry_w_rest_geo(
@@ -2603,10 +2609,9 @@ class Trainer(object):
                     "obj_rot_mat": obj_rot_mat_list[-1],
                     "object_name": curr_object_name,
                 }
-
                 human_object_results_path = os.path.join(
-                    mesh_save_folder, "human_object_results.pkl")
-                
+                    mesh_save_folder, "human_object_results.pkl"
+                )
                 with open(human_object_results_path, "wb") as f:
                     pickle.dump(human_object_results, f)
                 print(
@@ -2706,19 +2711,19 @@ class Trainer(object):
             pred_obj_rot_mat = all_res_list[:, :, 3 : 3 + 9].reshape(
                 num_seq, -1, 3, 3
             )  # N X T X 3 X 3
-
+        num_joints = 24
 
         if self.pred_human_motion:
             normalized_global_jpos = all_res_list[
-                :, :, 3 + 9 : 3 + 9 + self.opt.num_joints * 3
-            ].reshape(num_seq, -1, self.opt.num_joints, 3)
+                :, :, 3 + 9 : 3 + 9 + num_joints * 3
+            ].reshape(num_seq, -1, num_joints, 3)
             global_jpos = self.ds.de_normalize_jpos_min_max(
-                normalized_global_jpos.reshape(-1, self.opt.num_joints, 3)
+                normalized_global_jpos.reshape(-1, num_joints, 3)
             )
         else:  # Not used!!!
-            global_jpos = data_dict["ori_motion"][:, :, : self.opt.num_joints * 3]
+            global_jpos = data_dict["ori_motion"][:, :, : num_joints * 3]
 
-        global_jpos = global_jpos.reshape(num_seq, -1, self.opt.num_joints, 3)  # N X T X 22 X 3
+        global_jpos = global_jpos.reshape(num_seq, -1, num_joints, 3)  # N X T X 22 X 3
 
         # For putting human into 3D scene
         if move_to_planned_path is not None:
@@ -2738,7 +2743,6 @@ class Trainer(object):
         trans2joint = (
             data_dict["trans2joint"].to(all_res_list.device).squeeze(1)
         )  # BS X  3
-        
         seq_len = data_dict[
             "seq_len"
         ]  # BS, should only be used during for single window generation.
@@ -3312,16 +3316,6 @@ class Trainer(object):
 
         """
 
-        if rest_human_offsets is None:
-            warnings.warn("rest human offsets is None! Might cause errors further along the implementation!")
-            # raise ValueError(
-            #     "rest_human_offsets should not be None for interaction sequence."
-            # )
-
-        if trans2joint is None:
-            warnings.warn("trans2joint is None! Might cause errors further along the implementation!")
-            # raise ValueError("trans2joint should not be None for interaction sequence.")
-
         extra_dim = 0
         if self.use_object_keypoints:
             extra_dim += 4
@@ -3330,15 +3324,14 @@ class Trainer(object):
 
         start_obj_pos_on_planned_path = planned_obj_path[0:1, :]  # 1 X 3
 
-        curr_height_range = self.load_end_frame_height_heuristics(
-            curr_action_name, curr_object_name
-        )
 
-        seq_obj_com_pos = torch.zeros(
-            prev_navigation_end_human_pose.shape[0],
-            (planned_obj_path.shape[0] - 1) * 30,
-            3,
-        ).cuda()
+        # seq_obj_com_pos = torch.zeros(prev_navigation_end_human_pose.shape[0],(planned_obj_path.shape[0] - 1) * 30,3,).cuda()
+        
+        # REPLACE_VAR = prev_navigation_end_human_pose.shape[0] # replace with prev_navigation_end_human_pose.shape[0]
+        REPLACE_VAR = 1
+
+        # TODO - This needs to be fixed, above ^ is the correct line, but hardcoding it for now to see what happens
+        seq_obj_com_pos = torch.zeros(REPLACE_VAR,(planned_obj_path.shape[0] - 1) * 30,3,).cuda()
 
         seq_obj_com_pos[:, 0:1, :] = start_obj_pos_on_planned_path[
             None
@@ -3355,9 +3348,7 @@ class Trainer(object):
             window_cnt = 0
 
             window_t = (self.window - overlap_frame_num) // 30
-            window_cnt = (
-                1 + ((planned_obj_path.shape[0] - 5) + (window_t - 1)) // window_t
-            )
+            window_cnt = (1 + ((planned_obj_path.shape[0] - 5) + (window_t - 1)) // window_t)
 
             for tmp_p_idx in range(num_pts):
                 t_idx = (tmp_p_idx + 1) * 30 - 1
@@ -3415,13 +3406,13 @@ class Trainer(object):
 
         # Generate padding mask
         actual_seq_len = (
-            torch.ones(prev_navigation_end_human_pose.shape[0], self.window + 1)
+            torch.ones(REPLACE_VAR, self.window + 1)
             * self.window
             + 1
         )
         tmp_mask = (
             torch.arange(self.window + 1).expand(
-                prev_navigation_end_human_pose.shape[0], self.window + 1
+                REPLACE_VAR, self.window + 1
             )
             < actual_seq_len
         )
@@ -3446,7 +3437,7 @@ class Trainer(object):
             )
             cond_mask = end_pos_cond_mask * cond_mask
         else:
-            raise NotImplementedError("Not implemented yet.")
+            raise NotImplementedError("Condition mask without waypoints not implemented yet!")
 
         human_cond_mask = torch.ones(cond_mask.shape[0], cond_mask.shape[1], 204).cuda()
         if self.input_first_human_pose:
@@ -3467,7 +3458,7 @@ class Trainer(object):
             )  # BS X T X (3+9+24*3+22*6+4) 4 for 0/1 contacts.
 
         tmp_val_human_data = torch.zeros(
-            prev_navigation_end_human_pose.shape[0], val_obj_data.shape[1], 204
+            REPLACE_VAR, val_obj_data.shape[1], 204
         )
         tmp_val_obj_data = torch.zeros_like(val_obj_data).to(val_obj_data.device)
         if prev_navigation_end_human_pose is not None:  # unnormalized positions.
@@ -3748,7 +3739,6 @@ def build_interaction_trainer(
     load_ds: bool = False,
 ) -> Trainer:
     
-
     interaction_model = ObjectCondGaussianDiffusion(
         opt,
         d_feats=repr_dim,
@@ -3942,8 +3932,8 @@ def run_interaction_trainer(
         add_root_ori=add_root_ori,
         add_feet_contact=add_feet_contact,
     )
-
     saved_all_res_list = all_res_list.clone()
+
     # NOTE: Assume the batch size is 1.
     idx = 0
     (
@@ -4163,176 +4153,3 @@ def run_validation(opt, device):
     trainer.cond_sample_res(milestone=opt.milestone, render_results=True)
 
     torch.cuda.empty_cache()
-
-
-
-
-# def parse_opt():
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("--project", default="runs/train", help="project/name")
-#     parser.add_argument("--wandb_pj_name", type=str, default="", help="project name")
-#     parser.add_argument("--entity", default="zhenkirito123", help="W&B entity")
-#     parser.add_argument("--exp_name", default="", help="save to project/name")
-#     parser.add_argument("--device", default="0", help="cuda device")
-
-#     parser.add_argument("--window", type=int, default=120, help="horizon")
-
-#     parser.add_argument("--batch_size", type=int, default=32, help="batch size")
-#     parser.add_argument(
-#         "--learning_rate", type=float, default=2e-4, help="generator_learning_rate"
-#     )
-
-#     parser.add_argument("--checkpoint", type=str, default="", help="checkpoint")
-
-#     parser.add_argument("--data_root_folder", type=str, default="", help="checkpoint")
-
-#     parser.add_argument(
-#         "--n_dec_layers", type=int, default=4, help="the number of decoder layers"
-#     )
-#     parser.add_argument(
-#         "--n_head", type=int, default=4, help="the number of heads in self-attention"
-#     )
-#     parser.add_argument(
-#         "--d_k", type=int, default=256, help="the dimension of keys in transformer"
-#     )
-#     parser.add_argument(
-#         "--d_v", type=int, default=256, help="the dimension of values in transformer"
-#     )
-#     parser.add_argument(
-#         "--d_model",
-#         type=int,
-#         default=512,
-#         help="the dimension of intermediate representation in transformer",
-#     )
-
-#     # For testing sampled results
-#     parser.add_argument("--test_sample_res", action="store_true")
-
-#     # For testing sampled results
-#     parser.add_argument("--test_long_seq", action="store_true")
-
-#     # For testing sampled results w planned path
-#     parser.add_argument("--use_planned_path", action="store_true")
-
-#     # For testing sampled results w planned path
-#     parser.add_argument("--use_long_planned_path", action="store_true")
-
-#     # For loss type
-#     parser.add_argument("--use_l2_loss", action="store_true")
-
-#     # Train and test on different objects.
-#     parser.add_argument("--use_object_split", action="store_true")
-
-#     # For adding start and end object position (xyz) and rotation (6D rotation).
-#     parser.add_argument("--add_start_end_object_pos_rot", action="store_true")
-
-#     # For adding start and end object position (xyz).
-#     parser.add_argument("--add_start_end_object_pos", action="store_true")
-
-#     # For adding start and end object position at z plane (xy).
-#     parser.add_argument("--add_start_end_object_pos_xy", action="store_true")
-
-#     # For adding waypoints (xy).
-#     parser.add_argument("--add_waypoints_xy", action="store_true")
-
-#     # Random sample waypoints instead of fixed intervals.
-#     parser.add_argument("--use_random_waypoints", action="store_true")
-
-#     # Add language conditions.
-#     parser.add_argument("--add_contact_label", action="store_true")
-
-#     # Input the first human pose, maybe can connect the windows better.
-#     parser.add_argument("--remove_target_z", action="store_true")
-
-#     # Input the first human pose, maybe can connect the windows better.
-#     parser.add_argument("--use_guidance_in_denoising", action="store_true")
-
-#     parser.add_argument("--use_optimization_in_denoising", action="store_true")
-
-#     # Add rest offsets for body shape information.
-#     parser.add_argument("--add_rest_human_skeleton", action="store_true")
-
-#     # Add rest offsets for body shape information.
-#     parser.add_argument("--use_first_frame_bps", action="store_true")
-
-#     # Visualize the results from different noise levels.
-#     parser.add_argument("--return_diff_level_res", action="store_true")
-
-#     parser.add_argument("--input_full_human_pose", action="store_true")
-
-#     parser.add_argument(
-#         "--loss_w_feet",
-#         type=float,
-#         default=1,
-#         help="the loss weight for feet contact loss",
-#     )
-
-#     parser.add_argument(
-#         "--loss_w_fk", type=float, default=1, help="the loss weight for fk loss"
-#     )
-
-#     parser.add_argument(
-#         "--loss_w_obj_pts",
-#         type=float,
-#         default=1,
-#         help="the loss weight for object sampling points",
-#     )
-
-#     parser.add_argument(
-#         "--loss_w_obj_pts_in_hand",
-#         type=float,
-#         default=0.5,
-#         help="the loss weight for object sampling points in wrist frame",
-#     )
-
-#     parser.add_argument(
-#         "--loss_w_obj_vel",
-#         type=float,
-#         default=1,
-#         help="the loss weight for object velocity",
-#     )
-
-#     # Add extra loss.
-#     parser.add_argument(
-#         "--add_object_in_wrist_loss",
-#         action="store_true",
-#         help="Add object-hand relative loss.",
-#     )
-
-#     parser.add_argument(
-#         "--add_object_vel_loss", action="store_true", help="Add object velocity loss."
-#     )
-
-#     # Add extra conditions.
-#     parser.add_argument(
-#         "--add_wrist_relative",
-#         action="store_true",
-#         help="Add wrist relative pose as condition.",
-#     )
-
-#     parser.add_argument(
-#         "--add_object_static",
-#         action="store_true",
-#         help="Add object static pose as condition.",
-#     )
-
-#     parser.add_argument(
-#         "--add_interaction_root_xy_ori",
-#         action="store_true",
-#         help="Add root xy orientation as condition.",
-#     )
-
-#     parser.add_argument(
-#         "--add_interaction_feet_contact",
-#         action="store_true",
-#         help="Add feet contact as condition.",
-#     )
-
-#     parser.add_argument(
-#         "--milestone",
-#         type=str,
-#         default="10",
-#     )
-
-#     opt = parser.parse_args()
-#     return opt

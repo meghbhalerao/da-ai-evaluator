@@ -334,7 +334,10 @@ class TransformerDiffusionModel(nn.Module):
         # src: BS X T X D
         # noise_t: int
 
-        src = torch.cat((src, condition), dim=-1)
+        if condition is not None:
+            src = torch.cat((src, condition), dim=-1)
+        else:
+            pass # src, i.e the source remains the same
 
         noise_t_embed = self.time_mlp(noise_t)  # BS X d_model
 
@@ -382,7 +385,7 @@ class EmbedAction(nn.Module):
 class ObjectCondGaussianDiffusion(nn.Module):
     def __init__(
         self,
-        opt,
+        data_root_folder,
         d_feats,
         d_model,
         n_head,
@@ -406,12 +409,12 @@ class ObjectCondGaussianDiffusion(nn.Module):
         use_feet_contact=False,
         add_object_in_wrist_loss: bool = False,
         add_object_vel_loss: bool = False,
-    ):
+        guidance_time_step: int = 10):
+        
         super().__init__()
 
-        self.data_root_folder = opt.data_root_folder
-        self.opt = opt 
-
+        self.data_root_folder = data_root_folder
+        self.guidance_time_step = guidance_time_step
         self.bps_encoder = nn.Sequential(
             nn.Linear(in_features=1024 * 3, out_features=512),
             nn.ReLU(),
@@ -1066,12 +1069,12 @@ class ObjectCondGaussianDiffusion(nn.Module):
         )
 
         denoise_time_step = self.num_timesteps
-        guidance_time_step = self.opt.guidance_time_step
+        guidance_time_step = self.guidance_time_step
 
         if available_conditions is not None:  # not used now
             x_all = available_conditions["x_start"]
             denoise_time_step = 10
-            guidance_time_step = self.opt.guidance_time_step
+            guidance_time_step = self.guidance_time_step
 
         # If add wrist relative, modify cond_mask accordingly.
         if available_conditions_wrist_relative is not None:

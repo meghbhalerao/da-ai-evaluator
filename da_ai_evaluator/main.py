@@ -7,10 +7,10 @@ from augmentation.rollouts import CollectRollouts
 from augmentation.model_augmentation import MentalModelAugmentation
 from policies.keyboard_agent import HumanKeyboardPolicyAgent
 from environments import *
-from packages.diffusion_motion_generation.trainer_interaction_motion_diffusion import (
-    run_train,
-    run_validation)
+from trainers.trainer_interaction_motion_diffusion import run_train as run_train_interaction
+from trainers.trainer_interaction_motion_diffusion import run_validation as run_validation_interaction
 
+from trainers.trainer_diffusion_general import run_diffusion_trainer
 from packages.diffusion_motion_generation.sample import run_sample
 from packages.diffusion_motion_generation.human_sample import run_human_sample
 from packages.diffusion_motion_generation.scene_conditioned_sample import run_sample_scene_conditioned
@@ -31,9 +31,11 @@ def main(cfg: DictConfig):
         device = torch.device(
             f"cuda:{cfg.algorithm.device}" if torch.cuda.is_available() else "cpu")
         if cfg.algorithm.phase in ("validation", "valid"):
-            run_validation(cfg.algorithm, device)
+            run_validation_interaction(cfg.algorithm, device)
         elif cfg.algorithm.phase in ("training", "train"):
-            run_train(cfg.algorithm, device)
+            run_train_interaction(cfg.algorithm, device)
+        elif cfg.algorithm.phase  == 'train_on_sampled':
+            run_diffusion_trainer(cfg)
         elif cfg.algorithm.phase in ("sample"):
             run_sample(cfg.algorithm, device)
         elif cfg.algorithm.phase in ("scene_conditioned_sample"):
@@ -44,18 +46,12 @@ def main(cfg: DictConfig):
             else:
                 raise ValueError(f"Scene type {cfg.algorithm.scene_type} not supported for scene conditioned sampling!")
         elif cfg.algorithm.phase in ('human_sample'):
-            # make and render the scene first
-            # scene = make_scene(cfg.environment)
-            # scene.render()
-            # sys.exit()
             run_human_sample(cfg.algorithm, device)
         elif cfg.algorithm.phase in ('kinematic_control'):
             pass
         else:
             raise ValueError(f"Phase {cfg.algorithm.phase} does not have support yet!")
-
     sys.exit()
-
     from dataloaders.dataloader import convert_data_format
     from trainers.trainer import TrainerAllTypes
     from environments.make_env import make_vec_env
@@ -138,4 +134,6 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
+    import multiprocessing as mp
+    mp.set_start_method('spawn', force=True)
     main()

@@ -1,4 +1,5 @@
 # required settings
+
 load_pretrained_policy: false
 name: diff_trans
 # General settings
@@ -21,12 +22,22 @@ window: 120
 overlap_frame_num: 60
 num_traj_sample: 10
 
-batch_size: 32
-learning_rate: 0.0002
-total_timesteps: 8000000
+train_params:
+  batch_size: 32
+  learning_rate: 0.0001
+  total_timesteps: 8000000
+  ema_decay: 0.995
+  save_and_sample_every: 40000
+  ema_update_every: 10
+  load_ds: true
+  use_wandb: true
+  data_phase: null
+  gradient_accumulate_every: 2 
+  amp: false
+  step_start_ema: 2000
 
 checkpoint: ""
-data_root_folder: ""
+root_data_folder: ""
 
 # Navigation model settings
 n_dec_layers_nav: 4
@@ -34,7 +45,7 @@ n_head_nav: 4
 d_k_nav: 256
 d_v_nav: 256
 d_model_nav: 512
-add_language_condition_for_nav: true
+add_language_condition_for_nav: false
 human_start_pos: [0,0,0]
 human_end_pos: [5,5,0]
 
@@ -196,3 +207,6 @@ scene_type: mujoco
 
 # smplx model parameters (these are not really changeable, i.e. the smplx mode is fixed, but for better code readability, it is good to have these here)
 num_joints: 24
+
+# general settings
+add_language_condition: false

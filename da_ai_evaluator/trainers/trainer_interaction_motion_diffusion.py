@@ -2429,7 +2429,7 @@ class Trainer(object):
             obj_rest_verts, obj_mesh_faces = self.ds.load_rest_pose_object_geometry(
                 object_name
             )
-
+            
             obj_rest_verts = torch.from_numpy(obj_rest_verts)
 
             obj_mesh_verts = self.ds.load_object_geometry_w_rest_geo(

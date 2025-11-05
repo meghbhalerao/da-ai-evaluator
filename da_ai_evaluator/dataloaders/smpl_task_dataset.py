@@ -3,6 +3,8 @@ import os
 from typing import List, Literal
 import pickle
 from utils.utils import find_all_indices
+import sys
+
 
 class TaskTrajectoryDataset(Dataset):
     def __init__(self, root_data_folder: str = None, phase: Literal["navigation", "interaction"] = "navigation", data_in_mem: bool = True):
@@ -13,24 +15,26 @@ class TaskTrajectoryDataset(Dataset):
         self.num_data_phase = 0
         # get the pickle filepath list
         if data_in_mem: # load data in memory flag
-            data_dict_list = []
+            self.data_dict_list = []
             for path in os.listdir(root_data_folder):
-                data_file = pickle.load(open(os.path.join(root_data_folder, path, "nav_interact_res.pkl")), "rb")
+                data_file = pickle.load(open(os.path.join(root_data_folder, path, "nav_interact_res.pkl"), "rb"))
 
-                idxs_phase = find_all_indices(data_file['raw_results_list'], phase)
+                idxs_phase = find_all_indices(data_file['raw_results_phase'], phase)
 
                 for idx in idxs_phase:
-                    data_dict_list.append(data_file['raw_results_list'][idx])   
+                    self.data_dict_list.append(data_file['raw_results_list'][idx].cpu().squeeze())   
                     self.num_data_phase+=1
         else:
             raise NotImplementedError("Data loading from disk not implemented yet!")
+
 
 
     def __len__(self):
         return self.num_data_phase
     
     def __getitem__(self, index):
-        return 
+        return self.data_dict_list[index]
+         
     
         
 

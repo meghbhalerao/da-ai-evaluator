@@ -191,8 +191,7 @@ class CrossHumanObjectDecoderLayer(nn.Module):
         
         # bs, dec_len, _ = decoder_input_1.shape
         
-        decoder_out, dec_self_attn = self.self_attn(decoder_input_2, decoder_input_1, decoder_input_1, \
-                                mask=self_attn_time_mask)
+        decoder_out, dec_self_attn = self.self_attn(decoder_input_2, decoder_input_1, decoder_input_1, mask=self_attn_time_mask)
         # BS X T X D, BS X T X T
         decoder_out *= self_attn_padding_mask.unsqueeze(-1).float()
         # BS X T X D

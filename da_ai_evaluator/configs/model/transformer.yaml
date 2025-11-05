@@ -1,0 +1,51 @@
+# @package _global_
+
+defaults:
+  - _self_
+model:
+  name: transformer
+
+  # --- Architecture Parameters ---
+  architecture_parameters:
+    # Core Transformer/Diffusion dimensions
+    d_feats: 256 # Placeholder, e.g., 216 (Dimension of input/output features)
+    d_model: 512 # Placeholder, e.g., 512 (Internal hidden dimension of the Transformer)
+    out_dim: # Placeholder, e.g., 216 (Output dimension, usually same as d_feats)
+
+    # Transformer/Decoder Specifics
+    n_head: 4 # Placeholder, e.g., 8
+    n_dec_layers: 4 # Placeholder, e.g., 4
+    d_k: 256 # Placeholder, e.g., 64 (Dimension of key vectors)
+    d_v: 256 # Placeholder, e.g., 64 (Dimension of value vectors)
+    max_timesteps: 121 # Placeholder, e.g., 120 (Max sequence length)
+
+  # --- Diffusion Process & Loss Parameters ---
+  diffusion:
+    timesteps: 1000 # Total number of diffusion steps (T)
+    beta_schedule: "cosine" # Type of noise schedule
+    objective: "pred_noise" # Model objective: pred_noise or pred_x0
+    loss_type: "l1" # Base loss function (e.g., l1 or l2/mse)
+
+    # P2 Loss Weighting
+    p2_loss_weight_gamma: 0.0 # 0.0 means constant weight of 1 across time
+    p2_loss_weight_k: 1
+
+  # --- Conditioning & Input Features ---
+  conditioning:
+    pred_human_motion_only: False
+    input_rest_bps: False # Use Base Pose Space representation of object at rest
+    input_contact_labels: False # Use contact labels as input condition
+    input_first_human_pose: False
+    input_rest_human_skeleton: False # Use offsets/shape parameters as condition
+    use_object_keypoints: False
+    use_feet_contact: False
+
+  # --- Guidance and Loss Terms (Additional) ---
+  loss_extensions:
+    add_object_in_wrist_loss: False # Add a loss term for object keypoints in wrist space
+    add_object_vel_loss: False      # Add a loss term for object velocity
+
+  # --- Sampling/Inference Parameters ---
+  sampling:
+    # Time step until which reconstruction/classifier guidance is applied during sampling
+    guidance_time_step: 10
